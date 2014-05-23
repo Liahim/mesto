@@ -25,6 +25,11 @@ void doprocessing(int sock);
 static double* glob_var;
 
 int main(int argc, char *argv[]) {
+	struct sigaction sigchld_action = {
+	  .sa_handler = SIG_DFL,
+	  .sa_flags = SA_NOCLDWAIT
+	};
+	sigaction(SIGCHLD, &sigchld_action, NULL);
 
 	glob_var = mmap(NULL, sizeof *glob_var, PROT_READ | PROT_WRITE,
 	MAP_SHARED | MAP_ANONYMOUS, -1, 0);
