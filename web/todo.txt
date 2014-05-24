@@ -1,0 +1,1 @@
+initial coordinate from server, not hard-coded like now
