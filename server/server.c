@@ -130,7 +130,7 @@ void doprocessing(int sock) {
 
 	int fd = open ("/opt/share/httpd/coord.json", O_WRONLY | O_CREAT, 0644);
 	char msg[64] = {0};
-	sprintf(msg, "{\"lon\":%f,\"lat\":%f}", lon.d, lat.d);
+	sprintf(msg, "{\"lon\":%.6lf,\"lat\":%.6lf}", lon.d, lat.d);
 	write(fd, msg, strlen(msg));
 	close(fd);
 
