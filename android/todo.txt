@@ -1,0 +1,1 @@
+add button to send coordinates now
