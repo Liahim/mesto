@@ -1,1 +1,4 @@
 add button to send coordinates now
+
+extra logging to a persistent log
+
