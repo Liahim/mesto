@@ -128,7 +128,7 @@ void doprocessing(int sock) {
 	lat.b[6] = buffer[9];
 	lat.b[7] = buffer[8];
 
-	int fd = open ("/opt/share/httpd/coord.json", O_WRONLY | O_CREAT, 0644);
+	int fd = open ("/opt/share/httpd/coord.json", O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	char msg[128] = {0};
 	sprintf(msg, "{\"lon\":%.6lf,\"lat\":%.6lf}", lon.d, lat.d);
 	write(fd, msg, strlen(msg));

@@ -1,1 +1,3 @@
 file needs to be recreated every time
+
+thread safety?
