@@ -1,3 +1,5 @@
 show dots plus legend
 show history of last few locations
 make traffic toggleable
+show time the position was sent
+show legend of people shown

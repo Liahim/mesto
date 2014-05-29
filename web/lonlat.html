@@ -10,6 +10,20 @@
         margin: 0px;
         padding: 0px
       }
+
+      #legend {
+        font-family: Arial, sans-serif;
+        background: #fff;
+        padding: 10px;
+        margin: 10px;
+        border: 3px solid #721;
+      }
+      #legend h3 {
+        margin-top: 0;
+      }
+      #legend img {
+        vertical-align: middle;
+      }
     </style>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
     <script>
@@ -26,6 +40,23 @@ function initialize() {
                                 mapOptions);
   loadCoord();
 
+  var icons = {
+     parking: {
+        name: 'Misho',
+        icon: 'beachflag.png'
+     }
+  };
+  var legend = document.getElementById('legend');
+  for (var key in icons) {
+    var type = icons[key];
+    var name = type.name;
+    var icon = type.icon;
+    var div = document.createElement('div');
+    div.innerHTML = '<img src="' + icon + '"> ' + name;
+    legend.appendChild(div);
+  }
+  gMap.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
+
   var trafficLayer = new google.maps.TrafficLayer();
   trafficLayer.setMap(gMap);
 }
@@ -38,7 +69,7 @@ function loadCoord() {
    if (http.readyState==4 && http.status==200)
      {
        var vv = JSON.parse(http.responseText);
-       console.log(vv.lon + "; " + vv.lat);
+       console.log(vv.lon + "; " + vv.lat+"; date: " + (new Date()).toLocaleString());
        var myLatLng = new google.maps.LatLng(vv.lon,vv.lat);
 
        if (null != gMarker) {
@@ -47,7 +78,8 @@ function loadCoord() {
        gMarker = new google.maps.Marker({
           position: myLatLng,
           map: gMap,
-          icon: 'beachflag.png'
+          icon: 'beachflag.png',
+          title: 'Position as of ' + new Date().toLocaleString()
        });
      }
    }
@@ -64,6 +96,7 @@ setInterval(loadCoord, 30 * 1000);
   </head>
   <body>
     <div id="map-canvas"></div>
+    <div id="legend"></div>
   </body>
 </html>
 
