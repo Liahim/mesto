@@ -1,11 +1,9 @@
-
-
 <!DOCTYPE html>
 <html>
   <head>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
     <meta charset="utf-8">
-    <title>Simple icons</title>
+    <title>MestoWeb</title>
     <style>
       html, body, #map-canvas {
         height: 100%;
@@ -15,8 +13,6 @@
     </style>
     <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false"></script>
     <script>
-// This example adds a marker to indicate the position
-// of Bondi Beach in Sydney, Australia
 
 var gMarker;
 var gMap;
@@ -45,7 +41,9 @@ function loadCoord() {
        console.log(vv.lon + "; " + vv.lat);
        var myLatLng = new google.maps.LatLng(vv.lon,vv.lat);
 
-       gMarker.setMap(null);
+       if (null != gMarker) {
+         gMarker.setMap(null);
+       }
        gMarker = new google.maps.Marker({
           position: myLatLng,
           map: gMap,
@@ -60,7 +58,7 @@ function loadCoord() {
 
 google.maps.event.addDomListener(window, 'load', initialize);
 
-setInterval(, 30 * 1000);
+setInterval(loadCoord, 30 * 1000);
 
     </script>
   </head>

@@ -1,1 +1,3 @@
-initial coordinate from server, not hard-coded like now
+show dots plus legend
+show history of last few locations
+make traffic toggleable
