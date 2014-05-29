@@ -28,22 +28,13 @@ function initialize() {
   }
   gMap = new google.maps.Map(document.getElementById('map-canvas'),
                                 mapOptions);
+  loadCoord();
 
-  var image = 'beachflag.png';
-  var myLatLng = new google.maps.LatLng(37.390093,-121.935558);
-  gMarker = new google.maps.Marker({
-      position: myLatLng,
-      map: gMap,
-      icon: image
-  });
-  
   var trafficLayer = new google.maps.TrafficLayer();
   trafficLayer.setMap(gMap);
 }
 
-google.maps.event.addDomListener(window, 'load', initialize);
-
-setInterval(function() {
+function loadCoord() {
    var http=new XMLHttpRequest();
 
    http.onreadystatechange=function()
@@ -65,8 +56,11 @@ setInterval(function() {
 
    http.open("GET","coord.json?t=" + Math.random(),true);
    http.send();
-   
-}, 30 * 1000);
+}
+
+google.maps.event.addDomListener(window, 'load', initialize);
+
+setInterval(, 30 * 1000);
 
     </script>
   </head>
