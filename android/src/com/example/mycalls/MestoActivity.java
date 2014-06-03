@@ -2,20 +2,37 @@
 package com.example.mycalls;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.KeyEvent;
 import android.view.Menu;
+import android.view.MenuItem;
+import android.view.MenuItem.OnMenuItemClickListener;
 
 public final class MestoActivity extends Activity {
+    private MestoLocationService mService;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        startService(new Intent().setClassName(this, MestoLocationService.class.getName()));
+        final Intent intent = new Intent().setClassName(this, MestoLocationService.class.getName());
+        startService(intent);
+        bindService(intent, new ServiceConnection() {
+            @Override
+            public void onServiceDisconnected(final ComponentName name) {
+            }
+
+            @Override
+            public void onServiceConnected(final ComponentName name, final IBinder service) {
+                mService = ((MestoLocationService.Binder) service).getService();
+            }
+        }, 0);
     }
 
     public static void answerCall(final Context context) {
@@ -34,6 +51,15 @@ public final class MestoActivity extends Activity {
     public boolean onCreateOptionsMenu(final Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+        menu.findItem(R.id.send_current).setOnMenuItemClickListener(new OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(final MenuItem item) {
+                if (null != mService) {
+                    mService.sendLocation();
+                }
+                return true;
+            }
+        });
         return true;
     }
 
