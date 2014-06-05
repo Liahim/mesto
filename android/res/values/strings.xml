@@ -4,5 +4,7 @@
     <string name="app_name">Mesto</string>
     <string name="action_settings">Settings</string>
     <string name="send_current">Send Current Location</string>
+    <string name="button_save">Save</string>
+    <string name="button_cancel">Cancel</string>
 
 </resources>

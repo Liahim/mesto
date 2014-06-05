@@ -2,16 +2,22 @@
 package com.example.mycalls;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
+import android.view.View;
+import android.widget.TextView;
 
 public final class MestoActivity extends Activity {
     private MestoLocationService mService;
@@ -49,7 +55,6 @@ public final class MestoActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(final Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         menu.findItem(R.id.send_current).setOnMenuItemClickListener(new OnMenuItemClickListener() {
             @Override
@@ -60,7 +65,43 @@ public final class MestoActivity extends Activity {
                 return true;
             }
         });
+        menu.findItem(R.id.action_settings).setOnMenuItemClickListener(new OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(final MenuItem item) {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
+                final LayoutInflater inflater = getLayoutInflater();
+
+                final View view = inflater.inflate(R.layout.dialog_settings, null);
+                final TextView serverAddress = (TextView) view.findViewById(R.id.serverAddress);
+                if (null != serverAddress) {
+                    serverAddress.setText(loadServerLocation(MestoActivity.this));
+                }
+
+                builder.setView(view)
+                        .setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int id) {
+                                final String server = serverAddress.getText().toString();
+                                saveServerLocation(server);
+                            }
+                        })
+                        .setNegativeButton(R.string.button_cancel, null);
+
+                builder.create().show();
+
+                return true;
+            }
+        });
         return true;
     }
 
+    private final void saveServerLocation(final String uri) {
+        final SharedPreferences sp = getSharedPreferences("settings", Context.MODE_PRIVATE);
+        sp.edit().putString("server", uri).apply();
+    }
+
+    static final String loadServerLocation(final Context ctx) {
+        final SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        return sp.getString("server", null);
+    }
 }

@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.URI;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -96,17 +97,21 @@ public class MestoLocationService extends Service {
             @Override
             public final void run() {
                 try {
-                    final Socket s = new Socket(InetAddress.getByName("hubabuba.asuscomm.com"), 5001);
+                    final String server = MestoActivity.loadServerLocation(MestoLocationService.this);
+                    if (null != server) {
+                        final URI uri = new URI("tcp://"+server);
+                        final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
-                    final ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
-                    final DataOutputStream dos = new DataOutputStream(baos);
+                        final ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
+                        final DataOutputStream dos = new DataOutputStream(baos);
 
-                    dos.writeDouble(location.getLatitude());
-                    dos.writeDouble(location.getLongitude());
-                    final byte[] bytes = baos.toByteArray();
-                    s.getOutputStream().write(bytes);
+                        dos.writeDouble(location.getLatitude());
+                        dos.writeDouble(location.getLongitude());
+                        final byte[] bytes = baos.toByteArray();
+                        s.getOutputStream().write(bytes);
 
-                    s.close();
+                        s.close();
+                    }
                 } catch (final Exception e) {
                     Log.d(TAG, "error writing to server: ", e);
                 }
