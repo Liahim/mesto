@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MestoLocationService extends Service {
-    private final static String TAG = "Mesto";
+    final static String TAG = "Mesto";
     private final Binder mBinder = new Binder();
 
     public MestoLocationService() {
@@ -99,7 +99,7 @@ public class MestoLocationService extends Service {
                 try {
                     final String server = MestoActivity.loadServerLocation(MestoLocationService.this);
                     if (null != server) {
-                        final URI uri = new URI("tcp://"+server);
+                        final URI uri = new URI("tcp://" + server);
                         final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
                         final ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
@@ -111,6 +111,10 @@ public class MestoLocationService extends Service {
                         s.getOutputStream().write(bytes);
 
                         s.close();
+
+                        if (null != mRunnable) {
+                            mRunnable.run();
+                        }
                     }
                 } catch (final Exception e) {
                     Log.d(TAG, "error writing to server: ", e);
@@ -118,6 +122,12 @@ public class MestoLocationService extends Service {
             }
         };
         mExecutor.execute(r);
+    }
+
+    private Runnable mRunnable;
+
+    final void setRunnableCallback(final Runnable r) {
+        mRunnable = r;
     }
 
 }

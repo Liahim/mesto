@@ -2,4 +2,3 @@ improve send last known location - show the right names at least
 
 extra logging to a persistent log
 
-endpoint configuration

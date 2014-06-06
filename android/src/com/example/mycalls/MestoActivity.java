@@ -11,6 +11,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -19,13 +20,19 @@ import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public final class MestoActivity extends Activity {
     private MestoLocationService mService;
+    private TextView mStatusText;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mStatusText = (TextView) getWindow().findViewById(R.id.status_text);
 
         final Intent intent = new Intent().setClassName(this, MestoLocationService.class.getName());
         startService(intent);
@@ -37,9 +44,42 @@ public final class MestoActivity extends Activity {
             @Override
             public void onServiceConnected(final ComponentName name, final IBinder service) {
                 mService = ((MestoLocationService.Binder) service).getService();
+                mService.setRunnableCallback(mRunnable);
             }
         }, 0);
     }
+
+    @Override
+    protected final void onResume() {
+        super.onResume();
+        if (null != mService) {
+            mService.setRunnableCallback(mRunnable);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mService.setRunnableCallback(null);
+    }
+
+    private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss zzzz", Locale.US);
+    private final Runnable mRunnable = new Runnable() {
+        @Override
+        public final void run() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public final void run() {
+                    try {
+                        final String s = mFormat.format(new Date());
+                        mStatusText.setText("Last updated at " + s);
+                    } catch (final Exception e) {
+                        Log.e(MestoLocationService.TAG, "error updating status text", e);
+                    }
+                }
+            });
+        }
+    };
 
     public static void answerCall(final Context context) {
         final Intent buttonDown = new Intent(Intent.ACTION_MEDIA_BUTTON);
