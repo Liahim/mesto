@@ -92,6 +92,12 @@ public class MestoLocationService extends Service {
         }
     }
 
+    private long mLastUpdateTime;
+
+    long getLastUpdateTime() {
+        return mLastUpdateTime;
+    }
+
     private void sendLocation(final Location location) {
         final Runnable r = new Runnable() {
             @Override
@@ -112,6 +118,7 @@ public class MestoLocationService extends Service {
 
                         s.close();
 
+                        mLastUpdateTime = System.currentTimeMillis();
                         if (null != mRunnable) {
                             mRunnable.run();
                         }

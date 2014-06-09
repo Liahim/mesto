@@ -45,6 +45,7 @@ public final class MestoActivity extends Activity {
             public void onServiceConnected(final ComponentName name, final IBinder service) {
                 mService = ((MestoLocationService.Binder) service).getService();
                 mService.setRunnableCallback(mRunnable);
+                showStatusText();
             }
         }, 0);
     }
@@ -54,6 +55,7 @@ public final class MestoActivity extends Activity {
         super.onResume();
         if (null != mService) {
             mService.setRunnableCallback(mRunnable);
+            showStatusText();
         }
     }
 
@@ -70,16 +72,26 @@ public final class MestoActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public final void run() {
-                    try {
-                        final String s = mFormat.format(new Date());
-                        mStatusText.setText("Last updated at " + s);
-                    } catch (final Exception e) {
-                        Log.e(MestoLocationService.TAG, "error updating status text", e);
-                    }
+                    showStatusText();
                 }
             });
         }
     };
+
+    private final void showStatusText() {
+        try {
+            final long time = mService.getLastUpdateTime();
+            if (0 < time) {
+                final Date date = new Date(mService.getLastUpdateTime());
+                final String s = mFormat.format(date);
+                mStatusText.setText("Last updated at " + s);
+            } else {
+                mStatusText.setText("No updates recently");
+            }
+        } catch (final Exception e) {
+            Log.e(MestoLocationService.TAG, "error updating status text", e);
+        }
+    }
 
     public static void answerCall(final Context context) {
         final Intent buttonDown = new Intent(Intent.ACTION_MEDIA_BUTTON);
@@ -144,4 +156,5 @@ public final class MestoActivity extends Activity {
         final SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
         return sp.getString("server", null);
     }
+    //autostart
 }
