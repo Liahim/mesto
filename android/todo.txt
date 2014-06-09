@@ -2,3 +2,5 @@ improve send last known location - show the right names at least
 
 extra logging to a persistent log
 
+show fixed location (or fake)
+show fixed/fake location picker
