@@ -35,7 +35,7 @@ public class MestoLocationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        monitorLocation();
+        startMonitoringLocation();
     }
 
     public final class Binder extends android.os.Binder {
@@ -51,37 +51,41 @@ public class MestoLocationService extends Service {
 
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
     private Location mLastLocation;
-
-    private final void monitorLocation() {
-        final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
-        // Define a listener that responds to location updates
-        final LocationListener locationListener = new LocationListener() {
-            public void onLocationChanged(final Location location) {
-                mLastLocation = location;
-                Log.d(TAG, "location: " + location);
+    private final LocationListener mLocationListener = new LocationListener() {
+        public void onLocationChanged(final Location location) {
+            mLastLocation = location;
+            Log.d(TAG, "location: " + location);
+            if (mIsReporting) {
                 sendLocation(location);
             }
+        }
 
-            public void onStatusChanged(final String provider, final int status, final Bundle extras) {
-            }
+        public void onStatusChanged(final String provider, final int status, final Bundle extras) {
+        }
 
-            public void onProviderEnabled(final String provider) {
-            }
+        public void onProviderEnabled(final String provider) {
+        }
 
-            public void onProviderDisabled(final String provider) {
-            }
-        };
+        public void onProviderDisabled(final String provider) {
+        }
+    };
 
+    private final void startMonitoringLocation() {
+        final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 60 * 1000, 50, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 60 * 1000, 50, mLocationListener);
             Log.d(TAG, "network_provider selected");
         }
 
         if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 60 * 1000, 50, locationListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 60 * 1000, 50, mLocationListener);
             Log.d(TAG, "gps_provider selected");
         }
+    }
+
+    private final void stopMonitoringLocation() {
+        final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        locationManager.removeUpdates(mLocationListener);
     }
 
     public void sendLocation() {
@@ -90,6 +94,24 @@ public class MestoLocationService extends Service {
         } else {
             Log.e(TAG, "no known last location");
         }
+    }
+
+    private boolean mIsReporting = true;
+
+    boolean isReporting() {
+        return mIsReporting;
+    }
+
+    void stopReporting() {
+        Log.i(TAG, "stop reporting requested");
+        mIsReporting = false;
+        stopMonitoringLocation();
+    }
+
+    void startReporting() {
+        Log.i(TAG, "start reporting requested");
+        mIsReporting = true;
+        startMonitoringLocation();
     }
 
     private long mLastUpdateTime;

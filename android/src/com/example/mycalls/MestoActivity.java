@@ -144,6 +144,24 @@ public final class MestoActivity extends Activity {
                 return true;
             }
         });
+
+        menu.findItem(R.id.menu_toggle_reporting).setOnMenuItemClickListener(new OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(final MenuItem item) {
+                if (null != mService) {
+                    if (mService.isReporting()) {
+                        item.setTitle(R.string.start_reporting);
+                        mService.stopReporting();
+                        mStatusText.setText("Location reporting stopped");
+                    } else {
+                        item.setTitle(R.string.stop_reporting);
+                        mService.startReporting();
+                        mStatusText.setText("No updates recently");
+                    }
+                }
+                return true;
+            }
+        });
         return true;
     }
 
@@ -156,5 +174,4 @@ public final class MestoActivity extends Activity {
         final SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
         return sp.getString("server", null);
     }
-    //autostart
 }
