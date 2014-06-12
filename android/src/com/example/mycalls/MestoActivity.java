@@ -28,6 +28,19 @@ public final class MestoActivity extends Activity {
     private MestoLocationService mService;
     private TextView mStatusText;
 
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceDisconnected(final ComponentName name) {
+        }
+
+        @Override
+        public void onServiceConnected(final ComponentName name, final IBinder service) {
+            mService = ((MestoLocationService.Binder) service).getService();
+            mService.setRunnableCallback(mRunnable);
+            showStatusText();
+        }
+    };
+
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,18 +49,7 @@ public final class MestoActivity extends Activity {
 
         final Intent intent = new Intent().setClassName(this, MestoLocationService.class.getName());
         startService(intent);
-        bindService(intent, new ServiceConnection() {
-            @Override
-            public void onServiceDisconnected(final ComponentName name) {
-            }
-
-            @Override
-            public void onServiceConnected(final ComponentName name, final IBinder service) {
-                mService = ((MestoLocationService.Binder) service).getService();
-                mService.setRunnableCallback(mRunnable);
-                showStatusText();
-            }
-        }, 0);
+        bindService(intent, mServiceConnection, 0);
     }
 
     @Override
@@ -63,6 +65,12 @@ public final class MestoActivity extends Activity {
     protected void onPause() {
         super.onPause();
         mService.setRunnableCallback(null);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbindService(mServiceConnection);
     }
 
     private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss zzzz", Locale.US);
