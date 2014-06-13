@@ -186,7 +186,7 @@ public final class MestoActivity extends Activity {
             if (toggle) {
                 mService.startReporting();
             }
-            mStatusText.setText("No updates recently");
+            showStatusText();
         }
     }
 

@@ -22,9 +22,8 @@ import java.util.concurrent.Executors;
 public class MestoLocationService extends Service {
     final static String TAG = "Mesto";
     private final Binder mBinder = new Binder();
+    private long mLastUpdateTime;
 
-    public MestoLocationService() {
-    }
 
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
@@ -114,8 +113,6 @@ public class MestoLocationService extends Service {
         startMonitoringLocation();
     }
 
-    private long mLastUpdateTime;
-
     long getLastUpdateTime() {
         return mLastUpdateTime;
     }
@@ -157,6 +154,9 @@ public class MestoLocationService extends Service {
 
     final void setRunnableCallback(final Runnable r) {
         mRunnable = r;
+        if (null != mRunnable) {
+            mRunnable.run();
+        }
     }
 
 }
