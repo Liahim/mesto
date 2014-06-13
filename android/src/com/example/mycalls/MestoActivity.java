@@ -12,7 +12,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -27,22 +26,28 @@ import java.util.Locale;
 public final class MestoActivity extends Activity {
     private MestoLocationService mService;
     private TextView mStatusText;
+    private MenuItem mMenuItemToggleReporting;
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
-        public void onServiceDisconnected(final ComponentName name) {
+        public final void onServiceDisconnected(final ComponentName name) {
+            Log.i(MestoLocationService.TAG, "onServiceDisconnected");
+            mService = null;
         }
 
         @Override
-        public void onServiceConnected(final ComponentName name, final IBinder service) {
+        public final void onServiceConnected(final ComponentName name, final IBinder service) {
+            Log.i(MestoLocationService.TAG, "onServiceConnected");
             mService = ((MestoLocationService.Binder) service).getService();
             mService.setRunnableCallback(mRunnable);
             showStatusText();
+            showToggleReportingIfPossible();
         }
     };
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
+        Log.i(MestoLocationService.TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mStatusText = (TextView) getWindow().findViewById(R.id.status_text);
@@ -54,6 +59,7 @@ public final class MestoActivity extends Activity {
 
     @Override
     protected final void onResume() {
+        Log.i(MestoLocationService.TAG, "onResume");
         super.onResume();
         if (null != mService) {
             mService.setRunnableCallback(mRunnable);
@@ -63,12 +69,16 @@ public final class MestoActivity extends Activity {
 
     @Override
     protected void onPause() {
+        Log.i(MestoLocationService.TAG, "onPause");
         super.onPause();
-        mService.setRunnableCallback(null);
+        if (null != mService) {
+            mService.setRunnableCallback(null);
+        }
     }
 
     @Override
     protected void onDestroy() {
+        Log.i(MestoLocationService.TAG, "onDestroy");
         super.onDestroy();
         unbindService(mServiceConnection);
     }
@@ -101,18 +111,6 @@ public final class MestoActivity extends Activity {
         }
     }
 
-    public static void answerCall(final Context context) {
-        final Intent buttonDown = new Intent(Intent.ACTION_MEDIA_BUTTON);
-        buttonDown.putExtra(Intent.EXTRA_KEY_EVENT, new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_HEADSETHOOK));
-        context.sendOrderedBroadcast(buttonDown, "android.permission.CALL_PRIVILEGED");
-
-        // froyo and beyond trigger on buttonUp instead of buttonDown
-        final Intent buttonUp = new Intent(Intent.ACTION_MEDIA_BUTTON);
-        buttonUp.putExtra(Intent.EXTRA_KEY_EVENT,
-                new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_HEADSETHOOK));
-        context.sendOrderedBroadcast(buttonUp, "android.permission.CALL_PRIVILEGED");
-    }
-
     @Override
     public boolean onCreateOptionsMenu(final Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
@@ -140,7 +138,7 @@ public final class MestoActivity extends Activity {
                 builder.setView(view)
                         .setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
                             @Override
-                            public void onClick(DialogInterface dialog, int id) {
+                            public void onClick(final DialogInterface dialog, final int id) {
                                 final String server = serverAddress.getText().toString();
                                 saveServerLocation(server);
                             }
@@ -153,24 +151,43 @@ public final class MestoActivity extends Activity {
             }
         });
 
-        menu.findItem(R.id.menu_toggle_reporting).setOnMenuItemClickListener(new OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(final MenuItem item) {
-                if (null != mService) {
-                    if (mService.isReporting()) {
-                        item.setTitle(R.string.start_reporting);
-                        mService.stopReporting();
-                        mStatusText.setText("Location reporting stopped");
-                    } else {
-                        item.setTitle(R.string.stop_reporting);
-                        mService.startReporting();
-                        mStatusText.setText("No updates recently");
-                    }
-                }
-                return true;
-            }
-        });
+        mMenuItemToggleReporting = menu.findItem(R.id.menu_toggle_reporting);
+        showToggleReportingIfPossible();
         return true;
+    }
+
+    private void showToggleReportingIfPossible() {
+        if (null != mMenuItemToggleReporting) {
+            final boolean serviceConnected = null != mService;
+            mMenuItemToggleReporting.setVisible(serviceConnected);
+            if (serviceConnected) {
+                establishToggleReportingState(mMenuItemToggleReporting, !mService.isReporting(), false);
+                mMenuItemToggleReporting.setOnMenuItemClickListener(new OnMenuItemClickListener() {
+                    @Override
+                    public final boolean onMenuItemClick(final MenuItem item) {
+                        establishToggleReportingState(item, mService.isReporting(), true);
+                        return true;
+                    }
+                });
+            }
+        }
+    }
+
+    private final void establishToggleReportingState(final MenuItem item, final boolean showReporting,
+            final boolean toggle) {
+        if (showReporting) {
+            item.setTitle(R.string.start_reporting);
+            if (toggle) {
+                mService.stopReporting();
+            }
+            mStatusText.setText("Location reporting stopped");
+        } else {
+            item.setTitle(R.string.stop_reporting);
+            if (toggle) {
+                mService.startReporting();
+            }
+            mStatusText.setText("No updates recently");
+        }
     }
 
     private final void saveServerLocation(final String uri) {

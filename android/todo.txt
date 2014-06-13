@@ -5,7 +5,3 @@ extra logging to a persistent log
 show fixed location (or fake)
 show fixed/fake location picker
 
-show proper status text in case the app is relaunched but
-reporting has been stopped
-
-stop reporting doesn't work correctly
