@@ -5,3 +5,6 @@ extra logging to a persistent log
 show fixed location (or fake)
 show fixed/fake location picker
 
+
+show execution log in main screen so you can see the operation
+over the last few hours
