@@ -40,7 +40,7 @@ public final class MestoActivity extends Activity {
         public final void onServiceConnected(final ComponentName name, final IBinder service) {
             Log.i(MestoLocationService.TAG, "onServiceConnected");
             mService = ((MestoLocationService.Binder) service).getService();
-            mService.setRunnableCallback(mRunnable);
+            mService.addRunnableCallback(mRunnable);
 
             showToggleReportingIfPossible();
         }
@@ -64,7 +64,7 @@ public final class MestoActivity extends Activity {
         Log.i(MestoLocationService.TAG, "onResume");
         super.onResume();
         if (null != mService) {
-            mService.setRunnableCallback(mRunnable);
+            mService.addRunnableCallback(mRunnable);
             prepareStatusText();
             displayStatusText();
         }
@@ -75,7 +75,7 @@ public final class MestoActivity extends Activity {
         Log.i(MestoLocationService.TAG, "onPause");
         super.onPause();
         if (null != mService) {
-            mService.setRunnableCallback(null);
+            mService.removeRunnableCallback(mRunnable);
         }
     }
 

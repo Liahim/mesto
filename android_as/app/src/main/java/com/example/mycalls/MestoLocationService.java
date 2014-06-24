@@ -19,6 +19,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -29,6 +30,7 @@ public class MestoLocationService extends Service {
     private final Binder mBinder = new Binder();
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
     private final ArrayDeque<Event> mLogEvents = new ArrayDeque<Event>(MAX_LOG_EVENTS);
+    private final Collection<Runnable> mRunnableCallbacks = new HashSet<Runnable>();
     private boolean mIsReporting = true;
 
     static class Event implements Parcelable {
@@ -135,6 +137,10 @@ public class MestoLocationService extends Service {
         locationManager.removeUpdates(mLocationListener);
     }
 
+    public Location getLocation() {
+        return mLastLocation;
+    }
+
     public void sendLocation() {
         if (null != mLastLocation) {
             sendLocation(mLastLocation);
@@ -185,8 +191,8 @@ public class MestoLocationService extends Service {
                         s.close();
 
                         recordEvent(Event.Type.Update);
-                        if (null != mRunnable) {
-                            mRunnable.run();
+                        for (final Runnable cb : mRunnableCallbacks) {
+                            cb.run();
                         }
                     }
                 } catch (final Exception e) {
@@ -207,13 +213,14 @@ public class MestoLocationService extends Service {
         }
     }
 
-    private Runnable mRunnable;
-
-    final void setRunnableCallback(final Runnable r) {
-        mRunnable = r;
-        if (null != mRunnable) {
-            mRunnable.run();
+    final void addRunnableCallback(final Runnable r) {
+        if (mRunnableCallbacks.add(r)) {
+            r.run();
         }
+    }
+
+    final boolean removeRunnableCallback(final Runnable r) {
+        return mRunnableCallbacks.remove(r);
     }
 
 }

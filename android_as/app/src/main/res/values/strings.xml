@@ -6,7 +6,9 @@
     <string name="send_current">Send Current Location</string>
     <string name="button_save">Save</string>
     <string name="button_cancel">Cancel</string>
-
     <string name="stop_reporting">Stop Reporting</string>
     <string name="start_reporting">Start Reporting</string>
+    <string name="title_activity_map_view">MestoMap</string>
+    <string name="hello_world">Hello world!</string>
+
 </resources>
