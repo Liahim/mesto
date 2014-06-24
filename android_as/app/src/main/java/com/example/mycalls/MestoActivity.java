@@ -10,6 +10,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -40,8 +41,7 @@ public final class MestoActivity extends Activity {
             Log.i(MestoLocationService.TAG, "onServiceConnected");
             mService = ((MestoLocationService.Binder) service).getService();
             mService.setRunnableCallback(mRunnable);
-            prepareStatusText();
-            displayStatusText();
+
             showToggleReportingIfPossible();
         }
     };
@@ -52,6 +52,7 @@ public final class MestoActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mStatusText = (TextView) getWindow().findViewById(R.id.status_text);
+        mStatusText.setMovementMethod(new ScrollingMovementMethod());
 
         final Intent intent = new Intent().setClassName(this, MestoLocationService.class.getName());
         startService(intent);
@@ -103,19 +104,15 @@ public final class MestoActivity extends Activity {
 
     private final void prepareStatusText() {
         try {
-            final Collection<Long> updates = mService.getLogEvents();
-            if (0 < updates.size()) {
-                final StringBuilder sb = new StringBuilder();
-                for (final long update : updates) {
-                    final Date date = new Date(update);
-                    sb.append("Updated at ");
-                    sb.append(mFormat.format(date));
-                    sb.append('\n');
-                }
-                mStatusTextString = sb.toString();
-            } else {
-                mStatusTextString = "No updates recently";
+            final Collection<MestoLocationService.Event> events = mService.getLogEvents();
+            final StringBuilder sb = new StringBuilder();
+            for (final MestoLocationService.Event event : events) {
+                final Date date = new Date(event.mTime);
+                sb.append(event.mType == MestoLocationService.Event.Type.Update ? "Updated at " : "Started at ");
+                sb.append(mFormat.format(date));
+                sb.append('\n');
             }
+            mStatusTextString = sb.toString();
         } catch (final Exception e) {
             Log.e(MestoLocationService.TAG, "error updating status text", e);
         }

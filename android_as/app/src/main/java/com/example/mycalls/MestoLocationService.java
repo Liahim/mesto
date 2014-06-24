@@ -8,6 +8,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
@@ -17,17 +19,59 @@ import java.net.Socket;
 import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MestoLocationService extends Service {
     final static String TAG = "Mesto";
-    private final Binder mBinder = new Binder();
-    private final static int MAX_LOG_EVENTS = 30;
-    private final ArrayDeque<Long> mLogEvents = new ArrayDeque<Long>(MAX_LOG_EVENTS);
-    private long mLastUpdateTime;
+    private final static int MAX_LOG_EVENTS = 100;
 
+    private final Binder mBinder = new Binder();
+    private final ExecutorService mExecutor = Executors.newCachedThreadPool();
+    private final ArrayDeque<Event> mLogEvents = new ArrayDeque<Event>(MAX_LOG_EVENTS);
+    private boolean mIsReporting = true;
+
+    static class Event implements Parcelable {
+        private final static Type[] sTypes = Type.values();
+        final Type mType;
+        final long mTime;
+
+        private Event(final Type type, final long time) {
+            mType = type;
+            mTime = time;
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        public static final Parcelable.Creator<Event> CREATOR = new Parcelable.Creator<Event>() {
+            public Event createFromParcel(Parcel in) {
+                return new Event(in);
+            }
+
+            public Event[] newArray(int size) {
+                return new Event[size];
+            }
+        };
+
+        private Event(Parcel in) {
+            mType = sTypes[in.readInt()];
+            mTime = in.readLong();
+        }
+
+        @Override
+        public void writeToParcel(final Parcel dest, final int flags) {
+            dest.writeInt(mType.ordinal());
+            dest.writeLong(mTime);
+        }
+
+        enum Type {
+            Update,
+            Start
+        }
+    }
 
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
@@ -38,6 +82,7 @@ public class MestoLocationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        recordEvent(Event.Type.Start);
         startMonitoringLocation();
     }
 
@@ -52,7 +97,6 @@ public class MestoLocationService extends Service {
         return mBinder;
     }
 
-    private final ExecutorService mExecutor = Executors.newCachedThreadPool();
     private Location mLastLocation;
     private final LocationListener mLocationListener = new LocationListener() {
         public void onLocationChanged(final Location location) {
@@ -99,8 +143,6 @@ public class MestoLocationService extends Service {
         }
     }
 
-    private boolean mIsReporting = true;
-
     boolean isReporting() {
         return mIsReporting;
     }
@@ -117,11 +159,7 @@ public class MestoLocationService extends Service {
         startMonitoringLocation();
     }
 
-    long getLastUpdateTime() {
-        return mLastUpdateTime;
-    }
-
-    Collection<Long> getLogEvents() {
+    Collection<Event> getLogEvents() {
         synchronized (mLogEvents) {
             return mLogEvents.clone();
         }
@@ -144,16 +182,9 @@ public class MestoLocationService extends Service {
                         dos.writeDouble(location.getLongitude());
                         final byte[] bytes = baos.toByteArray();
                         s.getOutputStream().write(bytes);
-
                         s.close();
 
-                        mLastUpdateTime = System.currentTimeMillis();
-                        synchronized (mLogEvents) {
-                            if (MAX_LOG_EVENTS == mLogEvents.size()) {
-                                mLogEvents.pollLast();
-                            }
-                            mLogEvents.addFirst(mLastUpdateTime);
-                        }
+                        recordEvent(Event.Type.Update);
                         if (null != mRunnable) {
                             mRunnable.run();
                         }
@@ -164,6 +195,16 @@ public class MestoLocationService extends Service {
             }
         };
         mExecutor.execute(r);
+    }
+
+    private void recordEvent(Event.Type type) {
+        final long lastUpdateTime = System.currentTimeMillis();
+        synchronized (mLogEvents) {
+            if (MAX_LOG_EVENTS == mLogEvents.size()) {
+                mLogEvents.pollLast();
+            }
+            mLogEvents.addFirst(new Event(type, lastUpdateTime));
+        }
     }
 
     private Runnable mRunnable;
