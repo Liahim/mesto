@@ -177,6 +177,7 @@ public class MestoLocationService extends Service {
             public final void run() {
                 try {
                     final String server = MestoActivity.loadServerLocation(MestoLocationService.this);
+
                     if (null != server) {
                         final URI uri = new URI("tcp://" + server);
                         final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());

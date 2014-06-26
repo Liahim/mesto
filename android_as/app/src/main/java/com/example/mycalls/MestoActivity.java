@@ -12,17 +12,22 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 public final class MestoActivity extends Activity {
     private MestoLocationService mService;
@@ -137,28 +142,7 @@ public final class MestoActivity extends Activity {
         menu.findItem(R.id.action_settings).setOnMenuItemClickListener(new OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(final MenuItem item) {
-                final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
-                final LayoutInflater inflater = getLayoutInflater();
-
-                final View view = inflater.inflate(R.layout.dialog_settings, null);
-                final TextView serverAddress = (TextView) view.findViewById(R.id.serverAddress);
-                if (null != serverAddress) {
-                    serverAddress.setText(loadServerLocation(MestoActivity.this));
-                }
-
-                builder.setView(view)
-                        .setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(final DialogInterface dialog, final int id) {
-                                final String server = serverAddress.getText().toString();
-                                saveServerLocation(server);
-                            }
-                        })
-                        .setNegativeButton(R.string.button_cancel, null);
-
-                builder.create().show();
-
-                return true;
+                return onMenuSettings();
             }
         });
 
@@ -202,13 +186,72 @@ public final class MestoActivity extends Activity {
         }
     }
 
-    private final void saveServerLocation(final String uri) {
+    private final void saveServerLocation(final String uri, final Set<String> history) {
         final SharedPreferences sp = getSharedPreferences("settings", Context.MODE_PRIVATE);
-        sp.edit().putString("server", uri).apply();
+        final SharedPreferences.Editor editor = sp.edit();
+        editor.putString("server", uri);
+        editor.putStringSet("server_history", history);
+        editor.apply();
     }
 
     static final String loadServerLocation(final Context ctx) {
         final SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
         return sp.getString("server", null);
+    }
+
+    static final Pair<String, Set<String>> loadServerLocationAndHistory(final Context ctx) {
+        final SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        final String server = sp.getString("server", null);
+
+        final Set<String> serverHistory = new HashSet<String>();
+        serverHistory.addAll(sp.getStringSet("server_history", serverHistory));
+
+        final Pair<String, Set<String>> result = new Pair<String, Set<String>>(server, serverHistory);
+        return result;
+    }
+
+    private boolean onMenuSettings() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
+        final LayoutInflater inflater = getLayoutInflater();
+
+        final View view = inflater.inflate(R.layout.dialog_settings, null);
+        final AutoCompleteTextView serverAddress
+                = (AutoCompleteTextView) view.findViewById(R.id.serverAddress);
+
+        final Pair<String, Set<String>> pair = loadServerLocationAndHistory(MestoActivity.this);
+        serverAddress.setText(pair.first);
+
+        if (null != pair.second && !pair.second.isEmpty()) {
+            final String[] history = new String[pair.second.size()];
+            final ArrayAdapter<String> autoCompleteAdapter
+                    = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, pair.second.toArray(history));
+            serverAddress.setAdapter(autoCompleteAdapter);
+        }
+
+        builder.setView(view)
+                .setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(final DialogInterface dialog, final int id) {
+                        final String server = serverAddress.getText().toString();
+
+                        final Set<String> historySet;
+                        if (null == pair.second) {
+                            historySet = new HashSet<String>();
+                        } else {
+                            historySet = pair.second;
+                        }
+                        historySet.add(server);
+
+                        if (!pair.first.equalsIgnoreCase(server)) {
+                            saveServerLocation(server, historySet);
+                            mService.sendLocation();
+                        }
+                    }
+                })
+                .setNegativeButton(R.string.button_cancel, null);
+
+        builder.create().show();
+
+        return true;
     }
 }
