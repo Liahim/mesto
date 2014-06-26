@@ -13,13 +13,19 @@ import android.os.Parcelable;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
+import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -34,6 +40,7 @@ public class MestoLocationService extends Service {
     private boolean mIsReporting = true;
 
     static class Event implements Parcelable {
+
         private final static Type[] sTypes = Type.values();
         final Type mType;
         final long mTime;
@@ -69,9 +76,10 @@ public class MestoLocationService extends Service {
             dest.writeLong(mTime);
         }
 
+
         enum Type {
             Update,
-            Start
+            Start;
         }
     }
 
@@ -86,6 +94,13 @@ public class MestoLocationService extends Service {
         super.onCreate();
         recordEvent(Event.Type.Start);
         startMonitoringLocation();
+        mExecutor.submit(mServer);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mExecutor.shutdownNow();
     }
 
     public final class Binder extends android.os.Binder {
@@ -175,34 +190,43 @@ public class MestoLocationService extends Service {
         final Runnable r = new Runnable() {
             @Override
             public final void run() {
-                try {
-                    final String server = MestoActivity.loadServerLocation(MestoLocationService.this);
+                final String server = MestoActivity.loadServerLocation(MestoLocationService.this);
+                if (null != server) {
 
-                    if (null != server) {
-                        final URI uri = new URI("tcp://" + server);
-                        final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
+                    boolean successful = false;
+                    for (int i = 0; i < 3; ++i) {
+                        try {
+                            final URI uri = new URI("tcp://" + server);
+                            final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
-                        final ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
-                        final DataOutputStream dos = new DataOutputStream(baos);
+                            final ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
+                            final DataOutputStream dos = new DataOutputStream(baos);
 
-                        dos.writeDouble(location.getLatitude());
-                        dos.writeDouble(location.getLongitude());
-                        final byte[] bytes = baos.toByteArray();
-                        s.getOutputStream().write(bytes);
-                        s.close();
+                            dos.writeDouble(location.getLatitude());
+                            dos.writeDouble(location.getLongitude());
+                            final byte[] bytes = baos.toByteArray();
+                            s.getOutputStream().write(bytes);
+                            s.close();
 
+                            successful = true;
+                            break;
+                        } catch (final Exception e) {
+                            Log.e(TAG, "error while sending update to server", e);
+                        }
+                    }
+
+                    if (successful) {
                         recordEvent(Event.Type.Update);
                         for (final Runnable cb : mRunnableCallbacks) {
                             cb.run();
                         }
                     }
-                } catch (final Exception e) {
-                    Log.d(TAG, "error writing to server: ", e);
                 }
             }
         };
         mExecutor.execute(r);
     }
+
 
     private void recordEvent(Event.Type type) {
         final long lastUpdateTime = System.currentTimeMillis();
@@ -222,6 +246,73 @@ public class MestoLocationService extends Service {
 
     final boolean removeRunnableCallback(final Runnable r) {
         return mRunnableCallbacks.remove(r);
+    }
+
+
+    // Server below
+    private final Runnable mServer = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                final ServerSocket serverSocket = new ServerSocket(50001);
+                while (true) {
+                    Log.i(TAG, "local server running at port 50001");
+                    //@todo make it cancelable
+                    final Socket socket = serverSocket.accept();
+                    mExecutor.submit(new SocketRunnable(socket));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    interface EventNotificationListener {
+        void onEvent(double latitude, double longitude);
+    }
+
+    final Set<EventNotificationListener> mEventNotificationListeners = new HashSet<EventNotificationListener>();
+
+    boolean addEventNotificationListener(final EventNotificationListener l) {
+        return mEventNotificationListeners.add(l);
+    }
+
+    boolean removeEventNotificationListener(final EventNotificationListener l) {
+        return mEventNotificationListeners.remove(l);
+    }
+
+
+    private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.US);
+
+    private final class SocketRunnable implements Runnable {
+        private final Socket mSocket;
+
+        private SocketRunnable(final Socket s) {
+            mSocket = s;
+        }
+
+        @Override
+        public void run() {
+            try {
+                Log.i(TAG, "local server processing request from " + mSocket.getInetAddress());
+                final DataInputStream dis = new DataInputStream(mSocket.getInputStream());
+
+                final double latitude = dis.readDouble();
+                final double longitude = dis.readDouble();
+
+                for (EventNotificationListener l : mEventNotificationListeners) {
+                    l.onEvent(latitude, longitude);
+                }
+            } catch (final IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    mSocket.close();
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
 }

@@ -8,6 +8,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.method.ScrollingMovementMethod;
@@ -22,10 +24,16 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.TextView;
 
+import org.apache.http.conn.util.InetAddressUtils;
+
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -221,6 +229,11 @@ public final class MestoActivity extends Activity {
         final Pair<String, Set<String>> pair = loadServerLocationAndHistory(MestoActivity.this);
         serverAddress.setText(pair.first);
 
+        final TextView tv = (TextView) view.findViewById(R.id.localServer);
+        final String ipAddress = getIPAddress(true);
+        final String wlanName = getWlanName();
+        tv.setText("Local server running at " + ipAddress + ":50001\nUsing wlan " + wlanName);
+
         if (null != pair.second && !pair.second.isEmpty()) {
             final String[] history = new String[pair.second.size()];
             final ArrayAdapter<String> autoCompleteAdapter
@@ -253,5 +266,45 @@ public final class MestoActivity extends Activity {
         builder.create().show();
 
         return true;
+    }
+
+
+    /**
+     * Get IP address from first non-localhost interface
+     *
+     * @param ipv4 true=return ipv4, false=return ipv6
+     * @return address or empty string
+     */
+    public static String getIPAddress(boolean useIPv4) {
+        try {
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface intf : interfaces) {
+                List<InetAddress> addrs = Collections.list(intf.getInetAddresses());
+                for (InetAddress addr : addrs) {
+                    if (!addr.isLoopbackAddress()) {
+                        String sAddr = addr.getHostAddress().toUpperCase();
+                        boolean isIPv4 = InetAddressUtils.isIPv4Address(sAddr);
+                        if (useIPv4) {
+                            if (isIPv4)
+                                return sAddr;
+                        } else {
+                            if (!isIPv4) {
+                                int delim = sAddr.indexOf('%'); // drop ip6 port suffix
+                                return delim < 0 ? sAddr : sAddr.substring(0, delim);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+        } // for now eat exceptions
+        return "";
+    }
+
+    private String getWlanName() {
+        WifiManager wifiMgr = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+        String name = wifiInfo.getSSID();
+        return name;
     }
 }

@@ -88,36 +88,23 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="MapViewActivity.java" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="MapViewActivity.java" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MapViewActivity.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="2873" max-vertical-offset="3591">
-              <caret line="155" column="17" selection-start-line="155" selection-start-column="17" selection-end-line="155" selection-end-column="17" />
+            <state vertical-scroll-proportion="0.39693594" vertical-offset="2166" max-vertical-offset="3553">
+              <caret line="129" column="41" selection-start-line="129" selection-start-column="41" selection-end-line="129" selection-end-column="41" />
               <folding>
-                <element signature="e#3572#4202#0" expanded="true" />
-                <element signature="e#3836#4170#0" expanded="true" />
-                <element signature="e#4151#4152#0" expanded="true" />
-                <element signature="e#4195#4196#0" expanded="true" />
-                <element signature="e#4399#4886#0" expanded="true" />
-                <element signature="e#4879#4880#0" expanded="true" />
-                <element signature="e#5145#5146#0" expanded="true" />
-                <element signature="e#5180#5181#0" expanded="true" />
-                <element signature="e#5684#6022#0" expanded="true" />
-                <element signature="e#6003#6004#0" expanded="true" />
-                <element signature="e#6393#7733#0" expanded="true" />
-                <element signature="e#7722#7723#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="AndroidManifest.xml" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/app/src/main/AndroidManifest.xml">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1482">
-              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-              <folding>
-                <element signature="e#2437#2476#0" expanded="true" />
+                <element signature="imports" expanded="true" />
+                <element signature="e#3428#4058#0" expanded="true" />
+                <element signature="e#3692#4026#0" expanded="true" />
+                <element signature="e#4007#4008#0" expanded="true" />
+                <element signature="e#4051#4052#0" expanded="true" />
+                <element signature="e#4250#5994#0" expanded="true" />
+                <element signature="e#5983#5984#0" expanded="true" />
+                <element signature="e#6198#6938#0" expanded="true" />
+                <element signature="e#6610#6920#0" expanded="true" />
+                <element signature="e#6905#6906#0" expanded="true" />
+                <element signature="e#6931#6932#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -126,37 +113,50 @@
       <file leaf-file-name="MestoLocationService.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoLocationService.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="1976" max-vertical-offset="3762">
-              <caret line="149" column="0" selection-start-line="149" selection-start-column="0" selection-end-line="149" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="4104" max-vertical-offset="5529">
+              <caret line="281" column="0" selection-start-line="281" selection-start-column="0" selection-end-line="281" selection-end-column="0" />
               <folding>
-                <element signature="e#1021#1028#0" expanded="true" />
-                <element signature="e#1117#1127#0" expanded="true" />
-                <element signature="e#5275#6520#0" expanded="true" />
-                <element signature="e#6509#6510#0" expanded="true" />
-                <element signature="e#7091#7092#0" expanded="true" />
-                <element signature="e#7142#7143#0" expanded="true" />
+                <element signature="e#1193#1200#0" expanded="true" />
+                <element signature="e#1289#1299#0" expanded="true" />
+                <element signature="e#1683#1684#0" expanded="true" />
+                <element signature="e#1715#1716#0" expanded="true" />
+                <element signature="e#1869#1870#0" expanded="true" />
+                <element signature="e#1921#1922#0" expanded="true" />
+                <element signature="e#1970#1971#0" expanded="true" />
+                <element signature="e#2024#2025#0" expanded="true" />
+                <element signature="e#3148#3149#0" expanded="true" />
+                <element signature="e#3178#3179#0" expanded="true" />
+                <element signature="e#5596#7171#0" expanded="true" />
+                <element signature="e#7160#7161#0" expanded="true" />
+                <element signature="e#7743#7744#0" expanded="true" />
+                <element signature="e#7794#7795#0" expanded="true" />
+                <element signature="e#7855#8412#0" expanded="true" />
+                <element signature="e#8405#8406#0" expanded="true" />
+                <element signature="e#8603#8630#0" expanded="true" />
+                <element signature="e#9170#9171#0" expanded="true" />
+                <element signature="e#9205#9206#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="MestoActivity.java" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="MestoActivity.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.3328467" vertical-offset="2546" max-vertical-offset="4180">
-              <caret line="189" column="0" selection-start-line="189" selection-start-column="0" selection-end-line="189" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="3002" max-vertical-offset="5035">
+              <caret line="228" column="92" selection-start-line="228" selection-start-column="92" selection-end-line="228" selection-end-column="92" />
               <folding>
-                <element signature="e#4873#5057#0" expanded="true" />
-                <element signature="e#5046#5047#0" expanded="true" />
-                <element signature="e#6224#6248#0" expanded="true" />
-                <element signature="e#6439#6462#0" expanded="true" />
-                <element signature="e#7517#7525#0" expanded="true" />
-                <element signature="e#7667#7688#0" expanded="true" />
-                <element signature="e#8507#8515#0" expanded="true" />
-                <element signature="e#8733#8753#0" expanded="true" />
-                <element signature="e#8755#9579#0" expanded="true" />
-                <element signature="e#9560#9561#0" expanded="true" />
-                <element signature="e#9616#9638#0" expanded="true" />
+                <element signature="e#5112#5296#0" expanded="true" />
+                <element signature="e#5285#5286#0" expanded="true" />
+                <element signature="e#6463#6487#0" expanded="true" />
+                <element signature="e#6678#6701#0" expanded="true" />
+                <element signature="e#7756#7764#0" expanded="true" />
+                <element signature="e#7906#7927#0" expanded="true" />
+                <element signature="e#9018#9026#0" expanded="true" />
+                <element signature="e#9244#9264#0" expanded="true" />
+                <element signature="e#9266#10090#0" expanded="true" />
+                <element signature="e#10071#10072#0" expanded="true" />
+                <element signature="e#10127#10149#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -925,13 +925,13 @@
         <option value="$PROJECT_DIR$/app/src/main/res/values/strings.xml" />
         <option value="$PROJECT_DIR$/app/build/intermediates/manifests/debug/AndroidManifest.xml" />
         <option value="$PROJECT_DIR$/build.gradle" />
-        <option value="$PROJECT_DIR$/app/src/main/res/layout/activity_map_view.xml" />
         <option value="$PROJECT_DIR$/app/build.gradle" />
         <option value="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" />
-        <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MapViewActivity.java" />
+        <option value="$PROJECT_DIR$/app/src/main/res/layout/activity_map_view.xml" />
+        <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java" />
         <option value="$PROJECT_DIR$/app/src/main/res/layout/dialog_settings.xml" />
         <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoLocationService.java" />
-        <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java" />
+        <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MapViewActivity.java" />
       </list>
     </option>
   </component>
@@ -1320,21 +1320,21 @@
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3295562" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.31539187" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29895833" sideWeight="0.50067115" order="8" side_tool="true" content_ui="tabs" x="1065" y="587" width="752" height="349" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.31539187" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.29895833" sideWeight="0.50067115" order="8" side_tool="true" content_ui="tabs" x="1065" y="587" width="752" height="349" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5004721" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.31539187" sideWeight="0.5" order="3" side_tool="true" content_ui="tabs" />
+      <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29650614" sideWeight="0.3953125" order="3" side_tool="true" content_ui="tabs" />
       <window_info id="Build Variants" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.22379604" sideWeight="0.55833334" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Android" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.29650614" sideWeight="0.6046875" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Android" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29650614" sideWeight="0.6046875" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="13" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.16666667" sideWeight="0.49952784" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.259375" sideWeight="0.49952784" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3295562" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="7" side_tool="false" content_ui="combo" />
@@ -1364,25 +1364,25 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MapViewActivity.java</url>
-          <line>96</line>
+          <line>91</line>
           <properties />
           <option name="timeStamp" value="19" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MapViewActivity.java</url>
-          <line>85</line>
+          <line>80</line>
           <properties />
           <option name="timeStamp" value="21" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java</url>
-          <line>236</line>
+          <line>249</line>
           <properties />
           <option name="timeStamp" value="22" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java</url>
-          <line>189</line>
+          <line>197</line>
           <properties />
           <option name="timeStamp" value="25" />
         </line-breakpoint>
@@ -1396,18 +1396,17 @@
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1862">
           <caret line="83" column="0" selection-start-line="83" selection-start-column="0" selection-end-line="83" selection-end-column="0" />
           <folding>
-            <element signature="e#3572#4202#0" expanded="true" />
-            <element signature="e#3836#4170#0" expanded="true" />
-            <element signature="e#4151#4152#0" expanded="true" />
-            <element signature="e#4195#4196#0" expanded="true" />
-            <element signature="e#4399#4886#0" expanded="true" />
-            <element signature="e#4879#4880#0" expanded="true" />
-            <element signature="e#5145#5146#0" expanded="true" />
-            <element signature="e#5180#5181#0" expanded="true" />
-            <element signature="e#5684#6022#0" expanded="true" />
-            <element signature="e#6003#6004#0" expanded="true" />
-            <element signature="e#6393#7733#0" expanded="true" />
-            <element signature="e#7722#7723#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+            <element signature="e#3428#4058#0" expanded="true" />
+            <element signature="e#3692#4026#0" expanded="true" />
+            <element signature="e#4007#4008#0" expanded="true" />
+            <element signature="e#4051#4052#0" expanded="true" />
+            <element signature="e#4250#5994#0" expanded="true" />
+            <element signature="e#5983#5984#0" expanded="true" />
+            <element signature="e#6198#6938#0" expanded="true" />
+            <element signature="e#6610#6920#0" expanded="true" />
+            <element signature="e#6905#6906#0" expanded="true" />
+            <element signature="e#6931#6932#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -1417,12 +1416,25 @@
         <state vertical-scroll-proportion="0.0" vertical-offset="3097" max-vertical-offset="3819">
           <caret line="191" column="28" selection-start-line="191" selection-start-column="28" selection-end-line="191" selection-end-column="28" />
           <folding>
-            <element signature="e#1021#1028#0" expanded="true" />
-            <element signature="e#1117#1127#0" expanded="true" />
-            <element signature="e#5275#6520#0" expanded="true" />
-            <element signature="e#6509#6510#0" expanded="true" />
-            <element signature="e#7091#7092#0" expanded="true" />
-            <element signature="e#7142#7143#0" expanded="true" />
+            <element signature="e#1193#1200#0" expanded="true" />
+            <element signature="e#1289#1299#0" expanded="true" />
+            <element signature="e#1683#1684#0" expanded="true" />
+            <element signature="e#1715#1716#0" expanded="true" />
+            <element signature="e#1869#1870#0" expanded="true" />
+            <element signature="e#1921#1922#0" expanded="true" />
+            <element signature="e#1970#1971#0" expanded="true" />
+            <element signature="e#2024#2025#0" expanded="true" />
+            <element signature="e#3148#3149#0" expanded="true" />
+            <element signature="e#3178#3179#0" expanded="true" />
+            <element signature="e#5596#7171#0" expanded="true" />
+            <element signature="e#7160#7161#0" expanded="true" />
+            <element signature="e#7743#7744#0" expanded="true" />
+            <element signature="e#7794#7795#0" expanded="true" />
+            <element signature="e#7855#8412#0" expanded="true" />
+            <element signature="e#8405#8406#0" expanded="true" />
+            <element signature="e#8603#8630#0" expanded="true" />
+            <element signature="e#9170#9171#0" expanded="true" />
+            <element signature="e#9205#9206#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -1432,17 +1444,17 @@
         <state vertical-scroll-proportion="0.0" vertical-offset="1121" max-vertical-offset="4180">
           <caret line="59" column="0" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
           <folding>
-            <element signature="e#4873#5057#0" expanded="true" />
-            <element signature="e#5046#5047#0" expanded="true" />
-            <element signature="e#6224#6248#0" expanded="true" />
-            <element signature="e#6439#6462#0" expanded="true" />
-            <element signature="e#7517#7525#0" expanded="true" />
-            <element signature="e#7667#7688#0" expanded="true" />
-            <element signature="e#8507#8515#0" expanded="true" />
-            <element signature="e#8733#8753#0" expanded="true" />
-            <element signature="e#8755#9579#0" expanded="true" />
-            <element signature="e#9560#9561#0" expanded="true" />
-            <element signature="e#9616#9638#0" expanded="true" />
+            <element signature="e#5112#5296#0" expanded="true" />
+            <element signature="e#5285#5286#0" expanded="true" />
+            <element signature="e#6463#6487#0" expanded="true" />
+            <element signature="e#6678#6701#0" expanded="true" />
+            <element signature="e#7756#7764#0" expanded="true" />
+            <element signature="e#7906#7927#0" expanded="true" />
+            <element signature="e#9018#9026#0" expanded="true" />
+            <element signature="e#9244#9264#0" expanded="true" />
+            <element signature="e#9266#10090#0" expanded="true" />
+            <element signature="e#10071#10072#0" expanded="true" />
+            <element signature="e#10127#10149#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -1546,24 +1558,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.44509518" vertical-offset="0" max-vertical-offset="683">
           <caret line="16" column="0" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/activity_map_view.xml">
-      <provider editor-type-id="android-designer">
-        <state />
-      </provider>
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.08675799" vertical-offset="0" max-vertical-offset="657">
-          <caret line="3" column="39" selection-start-line="3" selection-start-column="39" selection-end-line="3" selection-end-column="39" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$APPLICATION_HOME_DIR$/sdk/sources/android-19/android/app/Service.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.41442952" vertical-offset="5377" max-vertical-offset="13015">
-          <caret line="326" column="28" selection-start-line="326" selection-start-column="28" selection-end-line="326" selection-end-column="28" />
         </state>
       </provider>
     </entry>
@@ -1695,48 +1689,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/AndroidManifest.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1482">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#2437#2476#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MapViewActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="2873" max-vertical-offset="3591">
-          <caret line="155" column="17" selection-start-line="155" selection-start-column="17" selection-end-line="155" selection-end-column="17" />
-          <folding>
-            <element signature="e#3572#4202#0" expanded="true" />
-            <element signature="e#3836#4170#0" expanded="true" />
-            <element signature="e#4151#4152#0" expanded="true" />
-            <element signature="e#4195#4196#0" expanded="true" />
-            <element signature="e#4399#4886#0" expanded="true" />
-            <element signature="e#4879#4880#0" expanded="true" />
-            <element signature="e#5145#5146#0" expanded="true" />
-            <element signature="e#5180#5181#0" expanded="true" />
-            <element signature="e#5684#6022#0" expanded="true" />
-            <element signature="e#6003#6004#0" expanded="true" />
-            <element signature="e#6393#7733#0" expanded="true" />
-            <element signature="e#7722#7723#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/dialog_settings.xml">
-      <provider editor-type-id="android-designer">
-        <state />
-      </provider>
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.19219653" vertical-offset="0" max-vertical-offset="692">
-          <caret line="7" column="5" selection-start-line="7" selection-start-column="5" selection-end-line="7" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$APPLICATION_HOME_DIR$/sdk/sources/android-19/android/widget/AutoCompleteTextView.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.73758864" vertical-offset="9911" max-vertical-offset="22363">
@@ -1766,42 +1718,121 @@
         <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="14611">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#27389#0" expanded="true" />
+            <element signature="e#0#27389#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/activity_map_view.xml">
+      <provider editor-type-id="android-designer">
+        <state />
+      </provider>
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.11567732" vertical-offset="0" max-vertical-offset="657">
+          <caret line="4" column="40" selection-start-line="4" selection-start-column="40" selection-end-line="4" selection-end-column="40" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/sdk/sources/android-19/android/app/Service.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.33235726" vertical-offset="7924" max-vertical-offset="13015">
+          <caret line="459" column="16" selection-start-line="459" selection-start-column="16" selection-end-line="459" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/AndroidManifest.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.33459118" vertical-offset="0" max-vertical-offset="1482">
+          <caret line="14" column="21" selection-start-line="14" selection-start-column="21" selection-end-line="14" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/res/layout/dialog_settings.xml">
+      <provider editor-type-id="android-designer">
+        <state />
+      </provider>
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.39175257" vertical-offset="0" max-vertical-offset="679">
+          <caret line="14" column="36" selection-start-line="14" selection-start-column="36" selection-end-line="14" selection-end-column="36" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="3002" max-vertical-offset="5035">
+          <caret line="228" column="92" selection-start-line="228" selection-start-column="92" selection-end-line="228" selection-end-column="92" />
+          <folding>
+            <element signature="e#5112#5296#0" expanded="true" />
+            <element signature="e#5285#5286#0" expanded="true" />
+            <element signature="e#6463#6487#0" expanded="true" />
+            <element signature="e#6678#6701#0" expanded="true" />
+            <element signature="e#7756#7764#0" expanded="true" />
+            <element signature="e#7906#7927#0" expanded="true" />
+            <element signature="e#9018#9026#0" expanded="true" />
+            <element signature="e#9244#9264#0" expanded="true" />
+            <element signature="e#9266#10090#0" expanded="true" />
+            <element signature="e#10071#10072#0" expanded="true" />
+            <element signature="e#10127#10149#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoLocationService.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="1976" max-vertical-offset="3762">
-          <caret line="149" column="0" selection-start-line="149" selection-start-column="0" selection-end-line="149" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="4104" max-vertical-offset="5529">
+          <caret line="281" column="0" selection-start-line="281" selection-start-column="0" selection-end-line="281" selection-end-column="0" />
           <folding>
-            <element signature="e#1021#1028#0" expanded="true" />
-            <element signature="e#1117#1127#0" expanded="true" />
-            <element signature="e#5275#6520#0" expanded="true" />
-            <element signature="e#6509#6510#0" expanded="true" />
-            <element signature="e#7091#7092#0" expanded="true" />
-            <element signature="e#7142#7143#0" expanded="true" />
+            <element signature="e#1193#1200#0" expanded="true" />
+            <element signature="e#1289#1299#0" expanded="true" />
+            <element signature="e#1683#1684#0" expanded="true" />
+            <element signature="e#1715#1716#0" expanded="true" />
+            <element signature="e#1869#1870#0" expanded="true" />
+            <element signature="e#1921#1922#0" expanded="true" />
+            <element signature="e#1970#1971#0" expanded="true" />
+            <element signature="e#2024#2025#0" expanded="true" />
+            <element signature="e#3148#3149#0" expanded="true" />
+            <element signature="e#3178#3179#0" expanded="true" />
+            <element signature="e#5596#7171#0" expanded="true" />
+            <element signature="e#7160#7161#0" expanded="true" />
+            <element signature="e#7743#7744#0" expanded="true" />
+            <element signature="e#7794#7795#0" expanded="true" />
+            <element signature="e#7855#8412#0" expanded="true" />
+            <element signature="e#8405#8406#0" expanded="true" />
+            <element signature="e#8603#8630#0" expanded="true" />
+            <element signature="e#9170#9171#0" expanded="true" />
+            <element signature="e#9205#9206#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java">
+    <entry file="file://$APPLICATION_HOME_DIR$/sdk/sources/android-19/java/util/Random.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.3328467" vertical-offset="2546" max-vertical-offset="4180">
-          <caret line="189" column="0" selection-start-line="189" selection-start-column="0" selection-end-line="189" selection-end-column="0" />
+        <state vertical-scroll-proportion="1.2966573" vertical-offset="0" max-vertical-offset="3496">
+          <caret line="64" column="11" selection-start-line="64" selection-start-column="11" selection-end-line="64" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MapViewActivity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.39693594" vertical-offset="2166" max-vertical-offset="3553">
+          <caret line="129" column="41" selection-start-line="129" selection-start-column="41" selection-end-line="129" selection-end-column="41" />
           <folding>
-            <element signature="e#4873#5057#0" expanded="true" />
-            <element signature="e#5046#5047#0" expanded="true" />
-            <element signature="e#6224#6248#0" expanded="true" />
-            <element signature="e#6439#6462#0" expanded="true" />
-            <element signature="e#7517#7525#0" expanded="true" />
-            <element signature="e#7667#7688#0" expanded="true" />
-            <element signature="e#8507#8515#0" expanded="true" />
-            <element signature="e#8733#8753#0" expanded="true" />
-            <element signature="e#8755#9579#0" expanded="true" />
-            <element signature="e#9560#9561#0" expanded="true" />
-            <element signature="e#9616#9638#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+            <element signature="e#3428#4058#0" expanded="true" />
+            <element signature="e#3692#4026#0" expanded="true" />
+            <element signature="e#4007#4008#0" expanded="true" />
+            <element signature="e#4051#4052#0" expanded="true" />
+            <element signature="e#4250#5994#0" expanded="true" />
+            <element signature="e#5983#5984#0" expanded="true" />
+            <element signature="e#6198#6938#0" expanded="true" />
+            <element signature="e#6610#6920#0" expanded="true" />
+            <element signature="e#6905#6906#0" expanded="true" />
+            <element signature="e#6931#6932#0" expanded="true" />
           </folding>
         </state>
       </provider>
