@@ -37,20 +37,20 @@ import static com.example.mycalls.MestoLocationService.EventNotificationListener
  * @todo will have to make the server a separate service
  */
 public class MapViewActivity extends Activity {
-    private static final String TAG = "MestoMV";
+    private static final String TAG = "MestoMapView";
     private GoogleMap mMap;
     private MestoLocationService mService;
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public final void onServiceDisconnected(final ComponentName name) {
-            Log.i(MestoLocationService.TAG, "onServiceDisconnected");
+            Log.i(TAG, "onServiceDisconnected");
             mService = null;
         }
 
         @Override
         public final void onServiceConnected(final ComponentName name, final IBinder service) {
-            Log.i(MestoLocationService.TAG, "onServiceConnected");
+            Log.i(TAG, "onServiceConnected");
             mService = ((MestoLocationService.Binder) service).getService();
             mService.addRunnableCallback(mRunnable);
             mService.addEventNotificationListener(mListener);

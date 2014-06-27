@@ -8,3 +8,8 @@ show fixed/fake location picker
 
 show execution log in main screen so you can see the operation
 over the last few hours
+
+
+multiple peer endpoints support
+
+protocol ext to pass devid and name, possibly

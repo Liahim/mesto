@@ -21,4 +21,6 @@ android {
 
 dependencies {
     compile 'com.google.android.gms:play-services:+'
+    compile files('/home/mmarinov/git/mesto/android_as/libs/cling-core-1.0.5.jar')
+    compile files('/home/mmarinov/git/mesto/android_as/libs/teleal-common-1.0.13.jar')
 }

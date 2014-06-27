@@ -38,6 +38,8 @@ import java.util.Locale;
 import java.util.Set;
 
 public final class MestoActivity extends Activity {
+
+    private final static String TAG = "MestoApp";
     private MestoLocationService mService;
     private TextView mStatusText;
     private MenuItem mMenuItemToggleReporting;
@@ -45,13 +47,13 @@ public final class MestoActivity extends Activity {
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
         public final void onServiceDisconnected(final ComponentName name) {
-            Log.i(MestoLocationService.TAG, "onServiceDisconnected");
+            Log.i(TAG, "onServiceDisconnected");
             mService = null;
         }
 
         @Override
         public final void onServiceConnected(final ComponentName name, final IBinder service) {
-            Log.i(MestoLocationService.TAG, "onServiceConnected");
+            Log.i(TAG, "onServiceConnected");
             mService = ((MestoLocationService.Binder) service).getService();
             mService.addRunnableCallback(mRunnable);
 
@@ -61,7 +63,7 @@ public final class MestoActivity extends Activity {
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
-        Log.i(MestoLocationService.TAG, "onCreate");
+        Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mStatusText = (TextView) getWindow().findViewById(R.id.status_text);
@@ -74,7 +76,7 @@ public final class MestoActivity extends Activity {
 
     @Override
     protected final void onResume() {
-        Log.i(MestoLocationService.TAG, "onResume");
+        Log.i(TAG, "onResume");
         super.onResume();
         if (null != mService) {
             mService.addRunnableCallback(mRunnable);
@@ -85,7 +87,7 @@ public final class MestoActivity extends Activity {
 
     @Override
     protected void onPause() {
-        Log.i(MestoLocationService.TAG, "onPause");
+        Log.i(TAG, "onPause");
         super.onPause();
         if (null != mService) {
             mService.removeRunnableCallback(mRunnable);
@@ -94,7 +96,7 @@ public final class MestoActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        Log.i(MestoLocationService.TAG, "onDestroy");
+        Log.i(TAG, "onDestroy");
         super.onDestroy();
         unbindService(mServiceConnection);
     }
@@ -127,7 +129,7 @@ public final class MestoActivity extends Activity {
             }
             mStatusTextString = sb.toString();
         } catch (final Exception e) {
-            Log.e(MestoLocationService.TAG, "error updating status text", e);
+            Log.e(TAG, "error updating status text", e);
         }
     }
 
