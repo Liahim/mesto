@@ -98,7 +98,7 @@ public class MestoLocationService extends Service {
         startMonitoringLocation();
         mExecutor.submit(mServer);
 
-        mUpnpController.initialize(this);
+        //mUpnpController.initialize(this);
     }
 
     @Override
@@ -210,11 +210,13 @@ public class MestoLocationService extends Service {
                             final URI uri = new URI("tcp://" + server);
                             final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
-                            final ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
+                            final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
                             final DataOutputStream dos = new DataOutputStream(baos);
 
                             dos.writeDouble(location.getLatitude());
                             dos.writeDouble(location.getLongitude());
+                            dos.writeUTF(mUpnpController.getDeviceIdentity().getUdn().getIdentifierString());
+
                             final byte[] bytes = baos.toByteArray();
                             s.getOutputStream().write(bytes);
                             s.close();
