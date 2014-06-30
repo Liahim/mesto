@@ -88,10 +88,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="UpnpController.java" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="UpnpController.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/UpnpController.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="3.6854522" vertical-offset="0" max-vertical-offset="3648">
+            <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="3648">
               <caret line="154" column="90" selection-start-line="154" selection-start-column="90" selection-end-line="154" selection-end-column="90" />
               <folding>
                 <element signature="imports" expanded="true" />
@@ -109,6 +109,16 @@
                 <element signature="e#3089#3227#0" expanded="true" />
                 <element signature="e#3216#3217#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="MestoActivity.java" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.6317169" vertical-offset="3375" max-vertical-offset="4959">
+              <caret line="259" column="50" selection-start-line="259" selection-start-column="50" selection-end-line="259" selection-end-column="50" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -888,11 +898,11 @@
         <option value="$PROJECT_DIR$/app/src/main/AndroidManifest.xml" />
         <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/SwitchPower.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MapViewActivity.java" />
-        <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/BootReceiver.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/FixedAndroidHandler.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoLocationService.java" />
         <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/UpnpController.java" />
+        <option value="$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java" />
       </list>
     </option>
   </component>
@@ -1268,7 +1278,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="25" width="1920" height="1175" extended-state="6" />
-    <editor active="true" />
+    <editor active="false" />
     <layout>
       <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -1348,17 +1358,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoLocationService.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="3097" max-vertical-offset="3819">
-          <caret line="191" column="28" selection-start-line="191" selection-start-column="28" selection-end-line="191" selection-end-column="28" />
-          <folding>
-            <element signature="e#3089#3227#0" expanded="true" />
-            <element signature="e#3216#3217#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="1121" max-vertical-offset="4180">
@@ -1533,14 +1532,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="3927" max-vertical-offset="4959">
-          <caret line="131" column="18" selection-start-line="131" selection-start-column="18" selection-end-line="131" selection-end-column="18" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/AndroidManifest.xml">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="44" max-vertical-offset="1501">
@@ -1613,8 +1604,8 @@
         <state vertical-scroll-proportion="0.33239037" vertical-offset="2140" max-vertical-offset="4674">
           <caret line="190" column="49" selection-start-line="190" selection-start-column="25" selection-end-line="190" selection-end-column="49" />
           <folding>
-            <element signature="e#7216#7217#0" expanded="true" />
-            <element signature="e#7257#7258#0" expanded="true" />
+            <element signature="e#7216#7217#0" expanded="false" />
+            <element signature="e#7257#7258#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1666,10 +1657,10 @@
         <state vertical-scroll-proportion="0.6762779" vertical-offset="54" max-vertical-offset="817">
           <caret line="48" column="0" selection-start-line="48" selection-start-column="0" selection-end-line="48" selection-end-column="0" />
           <folding>
-            <element signature="e#1420#1421#0" expanded="true" />
-            <element signature="e#1449#1450#0" expanded="true" />
-            <element signature="e#1504#1505#0" expanded="true" />
-            <element signature="e#1559#1560#0" expanded="true" />
+            <element signature="e#1420#1421#0" expanded="false" />
+            <element signature="e#1449#1450#0" expanded="false" />
+            <element signature="e#1504#1505#0" expanded="false" />
+            <element signature="e#1559#1560#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1751,11 +1742,27 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/UpnpController.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="3.6854522" vertical-offset="0" max-vertical-offset="3648">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="3648">
           <caret line="154" column="90" selection-start-line="154" selection-start-column="90" selection-end-line="154" selection-end-column="90" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/sdk/sources/android-19/android/widget/EditText.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.33289647" vertical-offset="620" max-vertical-offset="1976">
+          <caret line="73" column="20" selection-start-line="73" selection-start-column="20" selection-end-line="73" selection-end-column="20" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/app/src/main/java/com/example/mycalls/MestoActivity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.6317169" vertical-offset="3375" max-vertical-offset="4959">
+          <caret line="259" column="50" selection-start-line="259" selection-start-column="50" selection-end-line="259" selection-end-column="50" />
+          <folding />
         </state>
       </provider>
     </entry>

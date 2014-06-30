@@ -257,7 +257,7 @@ public final class MestoActivity extends Activity {
                         }
                         historySet.add(server);
 
-                        if (!pair.first.equalsIgnoreCase(server)) {
+                        if (null == pair.first || !pair.first.equalsIgnoreCase(server)) {
                             saveServerLocation(server, historySet);
                             mService.sendLocation();
                         }
