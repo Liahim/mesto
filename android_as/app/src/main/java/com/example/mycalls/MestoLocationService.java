@@ -333,4 +333,7 @@ public class MestoLocationService extends Service {
         }
     }
 
+    UpnpController getUpnpController() {
+        return mUpnpController;
+    }
 }

@@ -8,8 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.text.method.ScrollingMovementMethod;
@@ -22,26 +20,24 @@ import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import org.apache.http.conn.util.InetAddressUtils;
+import org.teleal.cling.model.types.UDN;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-public final class MestoActivity extends Activity {
+public final class MestoActivity extends Activity implements UpnpController.PeerNotifications {
 
     private final static String TAG = "MestoApp";
     private MestoLocationService mService;
     private TextView mStatusText;
+    private LinearLayout mPeersList;
     private MenuItem mMenuItemToggleReporting;
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -57,6 +53,8 @@ public final class MestoActivity extends Activity {
             mService = ((MestoLocationService.Binder) service).getService();
             mService.addRunnableCallback(mRunnable);
 
+            mService.getUpnpController().addPeerNotificationsListener(MestoActivity.this);
+
             showToggleReportingIfPossible();
         }
     };
@@ -68,6 +66,8 @@ public final class MestoActivity extends Activity {
         setContentView(R.layout.activity_main);
         mStatusText = (TextView) getWindow().findViewById(R.id.status_text);
         mStatusText.setMovementMethod(new ScrollingMovementMethod());
+
+        mPeersList = (LinearLayout) getWindow().findViewById(R.id.ll_peers);
 
         final Intent intent = new Intent().setClassName(this, MestoLocationService.class.getName());
         startService(intent);
@@ -232,8 +232,8 @@ public final class MestoActivity extends Activity {
         serverAddress.setText(pair.first);
 
         final TextView tv = (TextView) view.findViewById(R.id.localServer);
-        final String ipAddress = getIPAddress(true);
-        final String wlanName = getWlanName();
+        final String ipAddress = Utilities.getIPAddress(true);
+        final String wlanName = Utilities.getWlanName(this);
         tv.setText("Local server running at " + ipAddress + ":50001\nUsing wlan " + wlanName);
 
         if (null != pair.second && !pair.second.isEmpty()) {
@@ -270,43 +270,47 @@ public final class MestoActivity extends Activity {
         return true;
     }
 
+    @Override
+    public final void onAdd(final UDN udn, final String name) {
+        final Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                final TextView tv = new TextView(MestoActivity.this);
+                tv.setText(name);
+                tv.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
+                        final LayoutInflater inflater = getLayoutInflater();
 
-    /**
-     * Get IP address from first non-localhost interface
-     *
-     * @param ipv4 true=return ipv4, false=return ipv6
-     * @return address or empty string
-     */
-    public static String getIPAddress(boolean useIPv4) {
-        try {
-            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
-            for (NetworkInterface intf : interfaces) {
-                List<InetAddress> addrs = Collections.list(intf.getInetAddresses());
-                for (InetAddress addr : addrs) {
-                    if (!addr.isLoopbackAddress()) {
-                        String sAddr = addr.getHostAddress().toUpperCase();
-                        boolean isIPv4 = InetAddressUtils.isIPv4Address(sAddr);
-                        if (useIPv4) {
-                            if (isIPv4)
-                                return sAddr;
-                        } else {
-                            if (!isIPv4) {
-                                int delim = sAddr.indexOf('%'); // drop ip6 port suffix
-                                return delim < 0 ? sAddr : sAddr.substring(0, delim);
+                        final View view = inflater.inflate(R.layout.dialog_settings, null);
+                        final AutoCompleteTextView textView
+                                = (AutoCompleteTextView) view.findViewById(R.id.serverAddress);
+
+                        builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(final DialogInterface dialog, final int id) {
+                                final String pin = textView.getText().toString();
+                                mService.getUpnpController().setPin(udn, pin);
                             }
-                        }
+                        }).setNegativeButton(R.string.button_cancel, null);
+                        builder.create().show();
                     }
-                }
+                });
+                mPeersList.addView(tv);
             }
-        } catch (Exception ex) {
-        } // for now eat exceptions
-        return "";
+        };
+        runOnUiThread(r);
     }
 
-    private String getWlanName() {
-        WifiManager wifiMgr = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-        String name = wifiInfo.getSSID();
-        return name;
+    @Override
+    public void onRemove(UDN udn, String name) {
+        final Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                mPeersList.removeViewAt(0);
+            }
+        };
+        runOnUiThread(r);
     }
 }

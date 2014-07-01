@@ -9,13 +9,17 @@ import org.teleal.cling.UpnpServiceImpl;
 import org.teleal.cling.android.AndroidUpnpServiceConfiguration;
 import org.teleal.cling.binding.annotations.AnnotationLocalServiceBinder;
 import org.teleal.cling.controlpoint.ActionCallback;
+import org.teleal.cling.controlpoint.SubscriptionCallback;
 import org.teleal.cling.model.DefaultServiceManager;
 import org.teleal.cling.model.ValidationException;
 import org.teleal.cling.model.action.ActionArgumentValue;
 import org.teleal.cling.model.action.ActionInvocation;
+import org.teleal.cling.model.gena.CancelReason;
+import org.teleal.cling.model.gena.GENASubscription;
 import org.teleal.cling.model.message.UpnpResponse;
 import org.teleal.cling.model.message.header.UDAServiceTypeHeader;
 import org.teleal.cling.model.meta.Action;
+import org.teleal.cling.model.meta.Device;
 import org.teleal.cling.model.meta.DeviceDetails;
 import org.teleal.cling.model.meta.DeviceIdentity;
 import org.teleal.cling.model.meta.LocalDevice;
@@ -35,6 +39,9 @@ import org.teleal.cling.registry.RegistryListener;
 import org.teleal.common.logging.LoggingUtil;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 public class UpnpController {
@@ -102,6 +109,23 @@ public class UpnpController {
         }
     }
 
+    interface PeerNotifications {
+        void onAdd(UDN udn, String name);
+
+        void onRemove(UDN udn, String name);
+    }
+
+    private final Set<PeerNotifications> mPeerNotifications
+            = Collections.newSetFromMap(new ConcurrentHashMap<PeerNotifications, Boolean>());
+
+    boolean addPeerNotificationsListener(PeerNotifications l) {
+        return mPeerNotifications.add(l);
+    }
+
+    boolean removePeerNotificationsListener(PeerNotifications l) {
+        return mPeerNotifications.remove(l);
+    }
+
     private final RegistryListener mRegistryListener = new RegistryListener() {
         @Override
         public void remoteDeviceDiscoveryStarted(Registry registry, RemoteDevice device) {
@@ -114,19 +138,23 @@ public class UpnpController {
         }
 
         @Override
-        public void remoteDeviceAdded(Registry registry, RemoteDevice device) {
+        public void remoteDeviceAdded(Registry registry, final RemoteDevice device) {
             Log.i(TAG, "remote device added: " + device);
 
             Service service = device.findService(new UDAServiceId(MestoPeer.ID));
-            Action action = service.getAction("SetPin");
-            ActionInvocation setTargetInvocation = new ActionInvocation(action);
-            setTargetInvocation.setInput("Pin", 123);
+            Action action = service.getAction("GetName");
+            ActionInvocation getNameInvocation = new ActionInvocation(action);
 
-            ActionCallback setTargetCallback = new ActionCallback(setTargetInvocation) {
+            ActionCallback setTargetCallback = new ActionCallback(getNameInvocation) {
                 @Override
                 public void success(ActionInvocation invocation) {
                     ActionArgumentValue[] output = invocation.getOutput();
+                    final String name = (String) invocation.getOutput("Name").getValue();
+                    Log.i(TAG, "remote device name retrieved: " + name);
 
+                    for (final PeerNotifications l : mPeerNotifications) {
+                        l.onAdd(device.getIdentity().getUdn(), name);
+                    }
                 }
 
                 @Override
@@ -148,6 +176,9 @@ public class UpnpController {
         @Override
         public void remoteDeviceRemoved(Registry registry, RemoteDevice device) {
             Log.i(TAG, "remote device removed");
+            for (final PeerNotifications l : mPeerNotifications) {
+                l.onAdd(device.getIdentity().getUdn(), "name");//@todo
+            }
         }
 
         @Override
@@ -178,7 +209,39 @@ public class UpnpController {
         mUpnpService = new UpnpServiceImpl(createConfiguration(wifiManager), mRegistryListener);
 
         try {
-            mUpnpService.getRegistry().addDevice(createDevice());
+            final LocalDevice device = createDevice();
+            mUpnpService.getRegistry().addDevice(device);
+
+            final LocalService<MestoPeer> service = device.getServices()[0];
+            final SubscriptionCallback cb = new SubscriptionCallback(service, 180) {
+                @Override
+                protected void failed(final GENASubscription subscription, final UpnpResponse responseStatus, final Exception exception, final String defaultMsg) {
+                    Log.i(TAG, "scb failed");
+                }
+
+                @Override
+                protected void established(final GENASubscription subscription) {
+                    Log.i(TAG, "scb established");
+                }
+
+                @Override
+                protected void ended(final GENASubscription subscription, final CancelReason reason, final UpnpResponse responseStatus) {
+                    Log.i(TAG, "scb ended");
+                }
+
+                @Override
+                protected void eventReceived(final GENASubscription subscription) {
+                    Log.i(TAG, "scb eventReceived");
+                }
+
+                @Override
+                protected void eventsMissed(final GENASubscription subscription, final int numberOfMissedEvents) {
+                    Log.i(TAG, "scb eventMissed");
+                }
+            };
+            mUpnpService.getControlPoint().execute(cb);
+            service.getManager().getImplementation().setPin("777");
+
         } catch (Exception e) {
             Log.e(TAG, "addDevice failed", e);
         }
@@ -191,39 +254,56 @@ public class UpnpController {
                         "My Port Mapping");
         mUpnpService.getRegistry().addListener(new PortMappingListener(desiredMapping));*/
 
-        UDAServiceType udaType = new UDAServiceType("MestoPeer");
-        mUpnpService.getControlPoint().search(
-                new UDAServiceTypeHeader(udaType)
-        );
+        final UDAServiceType udaType = new UDAServiceType(MestoPeer.ID);
+        mUpnpService.getControlPoint().search(new UDAServiceTypeHeader(udaType));
     }
 
-    LocalDevice createDevice() throws IOException, ValidationException {
+    void setPin(final UDN udn, final String pin) {
+        final Device device = mUpnpService.getRegistry().getDevice(udn, false);
+        if (null != device) {
+            final Service service = device.findService(new UDAServiceId(MestoPeer.ID));
+            final Action action = service.getAction("SetPin");
+            final ActionInvocation invocation = new ActionInvocation(action);
+            invocation.setInput("Pin", pin);
 
-        DeviceType type = new UDADeviceType("BinaryLight", 1);
+            final ActionCallback callback = new ActionCallback(invocation) {
+                @Override
+                public void success(ActionInvocation invocation) {
+                    Log.i(TAG, "remote device pin set: " + udn);
+                }
 
-        DeviceDetails details = new DeviceDetails("Friendly Binary Light",
+                @Override
+                public void failure(ActionInvocation invocation,
+                                    UpnpResponse operation,
+                                    String defaultMsg) {
+                    System.err.println(defaultMsg);
+                }
+            };
+
+            mUpnpService.getControlPoint().execute(callback);
+        }
+    }
+
+    final LocalDevice createDevice() throws IOException, ValidationException {
+
+        final DeviceType type = new UDADeviceType(MestoPeer.ID, 1);
+        final DeviceDetails details = new DeviceDetails("Friendly Binary Light",
                 new ManufacturerDetails("MRM"), new ModelDetails("BinLight2000",
                 "A demo light with on/off switch", "v1")
         );
 
-        LocalService<MestoPeer> switchPowerService
-                = new AnnotationLocalServiceBinder().read(MestoPeer.class);
-        switchPowerService.setManager(new DefaultServiceManager<MestoPeer>(
-                switchPowerService, MestoPeer.class));
+        final LocalService<MestoPeer> service = new AnnotationLocalServiceBinder().read(MestoPeer.class);
+        service.setManager(new DefaultServiceManager<MestoPeer>(service, MestoPeer.class));
 
-        return new LocalDevice(mIdentity, type, details, switchPowerService);
+        return new LocalDevice(mIdentity, type, details, service);
     }
 
     private AndroidUpnpServiceConfiguration createConfiguration(WifiManager wifiManager) {
         return new AndroidUpnpServiceConfiguration(wifiManager) {
             @Override
             public ServiceType[] getExclusiveServiceTypes() {
-                Log.i(TAG, "requesting only MestoPeer service support");
-                return new ServiceType[]{
-                        new UDAServiceType("MestoPeer")
-                };
+                return new ServiceType[]{new UDAServiceType(MestoPeer.ID)};
             }
-
         };
     }
 }
