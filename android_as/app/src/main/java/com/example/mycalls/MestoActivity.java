@@ -3,11 +3,9 @@ package com.example.mycalls;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
@@ -28,7 +26,9 @@ import android.widget.TextView;
 import org.teleal.cling.model.types.UDN;
 
 import java.text.SimpleDateFormat;
+import java.util.AbstractList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
@@ -209,30 +209,6 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         }
     }
 
-    private final void saveServerLocation(final String uri, final Set<String> history) {
-        final SharedPreferences sp = getSharedPreferences("settings", Context.MODE_PRIVATE);
-        final SharedPreferences.Editor editor = sp.edit();
-        editor.putString("server", uri);
-        editor.putStringSet("server_history", history);
-        editor.apply();
-    }
-
-    static final String loadServerLocation(final Context ctx) {
-        final SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
-        return sp.getString("server", null);
-    }
-
-    static final Pair<String, Set<String>> loadServerLocationAndHistory(final Context ctx) {
-        final SharedPreferences sp = ctx.getSharedPreferences("settings", Context.MODE_PRIVATE);
-        final String server = sp.getString("server", null);
-
-        final Set<String> serverHistory = new HashSet<String>();
-        serverHistory.addAll(sp.getStringSet("server_history", serverHistory));
-
-        final Pair<String, Set<String>> result = new Pair<String, Set<String>>(server, serverHistory);
-        return result;
-    }
-
     private boolean onMenuSettings() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
         final LayoutInflater inflater = getLayoutInflater();
@@ -241,8 +217,12 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         final AutoCompleteTextView serverAddress
                 = (AutoCompleteTextView) view.findViewById(R.id.serverAddress);
 
-        final Pair<String, Set<String>> pair = loadServerLocationAndHistory(MestoActivity.this);
-        serverAddress.setText(pair.first);
+        final Pair<Set<String>, Set<String>> pair = Utilities.loadServerInfo(MestoActivity.this);
+        if (null != pair.first) {
+            for (final String s : pair.first) {
+                serverAddress.setText(s + '\n');
+            }
+        }
 
         final TextView tv = (TextView) view.findViewById(R.id.localServer);
         final String ipAddress = Utilities.getIPAddress(true);
@@ -270,8 +250,12 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                         }
                         historySet.add(server);
 
-                        if (null == pair.first || !pair.first.equalsIgnoreCase(server)) {
-                            saveServerLocation(server, historySet);
+                        if (null == pair.first || !pair.first.contains(server)) {
+                            final String[] tmp = server.split("\n");
+                            final Set<String> uris = new HashSet<String>();
+                            Collections.addAll(uris, tmp);
+
+                            Utilities.saveServerInfo(MestoActivity.this.getApplicationContext(), uris, historySet);
                             mService.sendLocation();
                         }
                     }
@@ -284,12 +268,13 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
     }
 
     @Override
-    public final void onAdd(final UDN udn, final String name) {
+    public final void onAdd(final UDN udn, final AbstractList<String> info) {
         final Runnable r = new Runnable() {
             @Override
             public void run() {
                 final TextView tv = new TextView(MestoActivity.this);
-                tv.setText(name);
+                tv.setText(info.get(0));
+                tv.setTag(info);
                 tv.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -306,6 +291,27 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                             public void onClick(final DialogInterface dialog, final int id) {
                                 final String pin = yourPin.getText().toString();
                                 mService.getUpnpController().setPin(udn, pin);
+                                final int size = info.size();
+
+                                if (1 < size) {
+                                    boolean needsSave = false;
+
+                                    Set<String> uris = Utilities.loadServerUris(MestoActivity.this);
+                                    if (null == uris) {
+                                        uris = new HashSet<String>();
+                                    }
+                                    for (int i = 1; i < info.size(); ++i) {
+                                        final String s = info.get(i);
+                                        if (!uris.contains(s)) {
+                                            uris.add(s);
+                                            needsSave = true;
+                                        }
+                                    }
+
+                                    if (needsSave) {
+                                        Utilities.saveServerInfo(MestoActivity.this, uris, null);
+                                    }
+                                }
                             }
                         }).setNegativeButton(R.string.button_cancel, null);
                         builder.create().show();

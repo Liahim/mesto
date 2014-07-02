@@ -248,38 +248,49 @@ public class MestoLocationService extends Service {
         final Runnable r = new Runnable() {
             @Override
             public final void run() {
-                final String server = MestoActivity.loadServerLocation(MestoLocationService.this);
-                if (null != server) {
+                final Set<String> servers = Utilities.loadServerUris(MestoLocationService.this);
+                if (null != servers) {
 
-                    boolean successful = false;
-                    for (int i = 0; i < 3; ++i) {
-                        try {
-                            final URI uri = new URI("tcp://" + server);
-                            final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
+                    for (final String s : servers) {
 
-                            final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
-                            final DataOutputStream dos = new DataOutputStream(baos);
+                        final Runnable rr = new Runnable() {
+                            @Override
+                            public final void run() {
+                                boolean successful = false;
+                                for (int i = 0; i < 3; ++i) {
+                                    try {
+                                        Log.i(TAG, "trying to update peer " + s);
+                                        final URI uri = new URI("tcp://" + s);
+                                        final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
-                            dos.writeDouble(location.getLatitude());
-                            dos.writeDouble(location.getLongitude());
-                            dos.writeUTF(mUpnpController.getDeviceIdentity().getUdn().getIdentifierString());
+                                        final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+                                        final DataOutputStream dos = new DataOutputStream(baos);
 
-                            final byte[] bytes = baos.toByteArray();
-                            s.getOutputStream().write(bytes);
-                            s.close();
+                                        dos.writeDouble(location.getLatitude());
+                                        dos.writeDouble(location.getLongitude());
+                                        dos.writeUTF(mUpnpController.getDeviceIdentity().getUdn().getIdentifierString());
 
-                            successful = true;
-                            break;
-                        } catch (final Exception e) {
-                            Log.e(TAG, "error while sending update to server", e);
-                        }
-                    }
+                                        final byte[] bytes = baos.toByteArray();
+                                        s.getOutputStream().write(bytes);
+                                        s.close();
 
-                    if (successful) {
-                        recordEvent(Event.Type.Update);
-                        for (final Runnable cb : mRunnableCallbacks) {
-                            cb.run();
-                        }
+                                        successful = true;
+                                        break;
+                                    } catch (final Exception e) {
+                                        Log.e(TAG, "error while sending update to server", e);
+                                    }
+                                }
+
+                                if (successful) {
+                                    recordEvent(Event.Type.Update);
+                                    for (final Runnable cb : mRunnableCallbacks) {
+                                        cb.run();
+                                    }
+                                }
+                            }
+                        };
+
+                        mExecutor.execute(rr);
                     }
                 }
             }

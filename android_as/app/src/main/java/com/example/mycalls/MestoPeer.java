@@ -10,6 +10,8 @@ import org.teleal.cling.binding.annotations.UpnpService;
 import org.teleal.cling.binding.annotations.UpnpServiceId;
 import org.teleal.cling.binding.annotations.UpnpServiceType;
 import org.teleal.cling.binding.annotations.UpnpStateVariable;
+import org.teleal.cling.model.types.csv.CSV;
+import org.teleal.cling.model.types.csv.CSVString;
 
 import java.beans.PropertyChangeSupport;
 
@@ -38,7 +40,7 @@ public class MestoPeer {
     private boolean authed;
 
     @UpnpStateVariable()
-    private String name = Build.PRODUCT;
+    private CSV<String> mesto;
 
     @UpnpAction
     public void setPin(@UpnpInputArgument(name = "Pin") final String pin) {
@@ -52,8 +54,19 @@ public class MestoPeer {
         return authed;
     }
 
-    @UpnpAction(out = @UpnpOutputArgument(name = "Name"))
-    public String getName() {
-        return name;
+    @UpnpAction(out = @UpnpOutputArgument(name = "Mesto"))
+    public CSV<String> getMesto() {
+        if (null == mesto) {
+            mesto = new CSVString();
+        } else {
+            mesto.clear();
+        }
+
+        mesto.add(Build.DEVICE);
+
+        final String me = Utilities.getIPAddress(true) + ":50001";
+        mesto.add(me);
+
+        return mesto;
     }
 }

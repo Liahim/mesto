@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Set;
 
 import static com.example.mycalls.MestoLocationService.EventNotificationListener;
 
@@ -120,6 +121,7 @@ public class MapViewActivity extends Activity {
         unbindService(mServiceConnection);
     }
 
+    //@todo broken
     private void testSendLocation() {
         final Runnable r = new Runnable() {
             @Override
@@ -132,7 +134,7 @@ public class MapViewActivity extends Activity {
                     final List<Address> addresses = geocoder.getFromLocationName(places[idx], 1);
 
                     if (addresses.size() > 0) {
-                        final String server = MestoActivity.loadServerLocation(MapViewActivity.this);
+                        final Set<String> server = Utilities.loadServerUris(MapViewActivity.this);
                         if (null != server) {
                             final URI uri = new URI("tcp://" + server);
                             final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());

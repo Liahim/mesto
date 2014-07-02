@@ -34,11 +34,13 @@ import org.teleal.cling.model.types.UDADeviceType;
 import org.teleal.cling.model.types.UDAServiceId;
 import org.teleal.cling.model.types.UDAServiceType;
 import org.teleal.cling.model.types.UDN;
+import org.teleal.cling.model.types.csv.CSVString;
 import org.teleal.cling.registry.Registry;
 import org.teleal.cling.registry.RegistryListener;
 import org.teleal.common.logging.LoggingUtil;
 
 import java.io.IOException;
+import java.util.AbstractList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -110,7 +112,7 @@ public class UpnpController {
     }
 
     interface PeerNotifications {
-        void onAdd(UDN udn, String name);
+        void onAdd(UDN udn, AbstractList<String> mesto);
 
         void onRemove(UDN udn, String name);
     }
@@ -142,18 +144,19 @@ public class UpnpController {
             Log.i(TAG, "remote device added: " + device);
 
             Service service = device.findService(new UDAServiceId(MestoPeer.ID));
-            Action action = service.getAction("GetName");
+            Action action = service.getAction("GetMesto");
             ActionInvocation getNameInvocation = new ActionInvocation(action);
 
             ActionCallback setTargetCallback = new ActionCallback(getNameInvocation) {
                 @Override
                 public void success(ActionInvocation invocation) {
                     ActionArgumentValue[] output = invocation.getOutput();
-                    final String name = (String) invocation.getOutput("Name").getValue();
-                    Log.i(TAG, "remote device name retrieved: " + name);
+                    final CSVString mesto
+                            = new CSVString((String) invocation.getOutput("Mesto").getValue());
+                    Log.i(TAG, "remote device name retrieved: " + mesto.get(0));
 
                     for (final PeerNotifications l : mPeerNotifications) {
-                        l.onAdd(device.getIdentity().getUdn(), name);
+                        l.onAdd(device.getIdentity().getUdn(), mesto);
                     }
                 }
 
@@ -177,7 +180,7 @@ public class UpnpController {
         public void remoteDeviceRemoved(Registry registry, RemoteDevice device) {
             Log.i(TAG, "remote device removed");
             for (final PeerNotifications l : mPeerNotifications) {
-                l.onAdd(device.getIdentity().getUdn(), "name");//@todo
+                l.onRemove(device.getIdentity().getUdn(), "name");//@todo
             }
         }
 
@@ -240,7 +243,6 @@ public class UpnpController {
                 }
             };
             mUpnpService.getControlPoint().execute(cb);
-            service.getManager().getImplementation().setPin("777");
 
         } catch (Exception e) {
             Log.e(TAG, "addDevice failed", e);

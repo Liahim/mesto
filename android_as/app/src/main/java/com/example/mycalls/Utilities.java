@@ -1,15 +1,19 @@
 package com.example.mycalls;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.util.Pair;
 
 import org.apache.http.conn.util.InetAddressUtils;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class Utilities {
     private Utilities() {
@@ -54,4 +58,39 @@ public final class Utilities {
         String name = wifiInfo.getSSID();
         return name;
     }
+
+
+    private final static String KEY_SERVER_URIS = "server_uris";
+    private final static String KEY_SERVER_HISTORY = "server_history";
+
+    static final void saveServerInfo(
+            final Context ctx, final Set<String> uris, final Set<String> history) {
+        final SharedPreferences sp
+                = ctx.getApplicationContext().getSharedPreferences("settings", Context.MODE_PRIVATE);
+        final SharedPreferences.Editor editor = sp.edit();
+        editor.putStringSet(KEY_SERVER_URIS, uris);
+        if (null != history) {
+            editor.putStringSet(KEY_SERVER_HISTORY, history);
+        }
+        editor.apply();
+    }
+
+    static final Set<String> loadServerUris(final Context ctx) {
+        final SharedPreferences sp
+                = ctx.getApplicationContext().getSharedPreferences("settings", Context.MODE_PRIVATE);
+        return sp.getStringSet(KEY_SERVER_URIS, null);
+    }
+
+    static final Pair<Set<String>, Set<String>> loadServerInfo(final Context ctx) {
+        final SharedPreferences sp
+                = ctx.getApplicationContext().getSharedPreferences("settings", Context.MODE_PRIVATE);
+        final Set<String> uris = sp.getStringSet(KEY_SERVER_URIS, null);
+
+        final Set<String> serverHistory = new HashSet<String>();
+        serverHistory.addAll(sp.getStringSet(KEY_SERVER_HISTORY, serverHistory));
+
+        final Pair<Set<String>, Set<String>> result = new Pair<Set<String>, Set<String>>(uris, serverHistory);
+        return result;
+    }
+
 }
