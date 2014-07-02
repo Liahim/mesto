@@ -10,6 +10,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.util.Pair;
@@ -20,6 +21,7 @@ import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -59,24 +61,27 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         }
     };
 
+    private String mPin;    //@todo replace
+
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         mStatusText = (TextView) getWindow().findViewById(R.id.status_text);
         mStatusText.setMovementMethod(new ScrollingMovementMethod());
-
         mPeersList = (LinearLayout) getWindow().findViewById(R.id.ll_peers);
 
         final Intent intent = new Intent().setClassName(this, MestoLocationService.class.getName());
         startService(intent);
         bindService(intent, mServiceConnection, 0);
+
+        mPin = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
     }
 
     @Override
     protected final void onResume() {
-        Log.i(TAG, "onResume");
         super.onResume();
         if (null != mService) {
             mService.addRunnableCallback(mRunnable);
@@ -87,7 +92,6 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
 
     @Override
     protected void onPause() {
-        Log.i(TAG, "onPause");
         super.onPause();
         if (null != mService) {
             mService.removeRunnableCallback(mRunnable);
@@ -96,7 +100,6 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
 
     @Override
     protected void onDestroy() {
-        Log.i(TAG, "onDestroy");
         super.onDestroy();
         unbindService(mServiceConnection);
     }
@@ -123,7 +126,17 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             final StringBuilder sb = new StringBuilder();
             for (final MestoLocationService.Event event : events) {
                 final Date date = new Date(event.mTime);
-                sb.append(event.mType == MestoLocationService.Event.Type.Update ? "Updated at " : "Started at ");
+                switch (event.mType) {
+                    case Update:
+                        sb.append("Updated at ");
+                        break;
+                    case Start:
+                        sb.append("Started at ");
+                        break;
+                    case Stop:
+                        sb.append("Stopped at ");
+                        break;
+                }
                 sb.append(mFormat.format(date));
                 sb.append('\n');
             }
@@ -283,14 +296,15 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                         final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
                         final LayoutInflater inflater = getLayoutInflater();
 
-                        final View view = inflater.inflate(R.layout.dialog_settings, null);
-                        final AutoCompleteTextView textView
-                                = (AutoCompleteTextView) view.findViewById(R.id.serverAddress);
+                        final View view = inflater.inflate(R.layout.dialog_pin, null);
+                        final TextView myPin = (TextView) view.findViewById(R.id.tv_mypin);
+                        myPin.setText(mPin);
+                        final EditText yourPin = (EditText) view.findViewById(R.id.et_yourpin);
 
                         builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(final DialogInterface dialog, final int id) {
-                                final String pin = textView.getText().toString();
+                                final String pin = yourPin.getText().toString();
                                 mService.getUpnpController().setPin(udn, pin);
                             }
                         }).setNegativeButton(R.string.button_cancel, null);
@@ -313,4 +327,38 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         };
         runOnUiThread(r);
     }
+
+
+    /*byte[] aa() throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, InvalidParameterSpecException, BadPaddingException, IllegalBlockSizeException {
+        SecretKeyFactory f = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        byte[] salt = { 0 };
+        KeySpec spec = new PBEKeySpec(mPin.toCharArray(), salt, 1, 256);
+        SecretKey tmp = f.generateSecret(spec);
+        SecretKey secret = new SecretKeySpec(tmp.getEncoded(), "AES");
+
+        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        c.init(Cipher.ENCRYPT_MODE, secret);
+
+        AlgorithmParameters ap = c.getParameters();
+        //byte[] iv = ap.getParameterSpec(IvParameterSpec.class).getIV();
+        byte[] ct = c.doFinal("Hello World!".getBytes());
+
+        return ct;
+    }
+
+    void bb(byte[] bytes) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidParameterSpecException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException {
+        //
+        SecretKeyFactory f = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        byte[] salt = { 0 };
+        KeySpec spec = new PBEKeySpec(mPin.toCharArray(), salt, 1, 256);
+        SecretKey tmp = f.generateSecret(spec);
+        SecretKey secret = new SecretKeySpec(tmp.getEncoded(), "AES");
+
+        //AlgorithmParameters ap = c.getParameters();
+        //byte[] iv = ap.getParameterSpec(IvParameterSpec.class).getIV();
+        c.init(Cipher.DECRYPT_MODE, secret);
+    String txt = new String(c.doFinal(bytes), "UTF-8");
+    System.err.println("txt: "+txt);
+}*/
 }

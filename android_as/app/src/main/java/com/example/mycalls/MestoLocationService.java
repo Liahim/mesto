@@ -9,13 +9,17 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcel;
-import android.os.Parcelable;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -41,7 +45,7 @@ public class MestoLocationService extends Service {
     private boolean mIsReporting = true;
     private final UpnpController mUpnpController = new UpnpController();
 
-    static class Event implements Parcelable {
+    static class Event implements Serializable {
 
         private final static Type[] sTypes = Type.values();
         final Type mType;
@@ -52,36 +56,15 @@ public class MestoLocationService extends Service {
             mTime = time;
         }
 
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        public static final Parcelable.Creator<Event> CREATOR = new Parcelable.Creator<Event>() {
-            public Event createFromParcel(Parcel in) {
-                return new Event(in);
-            }
-
-            public Event[] newArray(int size) {
-                return new Event[size];
-            }
-        };
-
         private Event(Parcel in) {
             mType = sTypes[in.readInt()];
             mTime = in.readLong();
         }
 
-        @Override
-        public void writeToParcel(final Parcel dest, final int flags) {
-            dest.writeInt(mType.ordinal());
-            dest.writeLong(mTime);
-        }
-
-
         enum Type {
             Update,
-            Start;
+            Start,
+            Stop;
         }
     }
 
@@ -94,7 +77,10 @@ public class MestoLocationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        loadEvents();
         recordEvent(Event.Type.Start);
+
         startMonitoringLocation();
         mExecutor.submit(mServer);
 
@@ -111,7 +97,68 @@ public class MestoLocationService extends Service {
             }
         };
         mExecutor.submit(r);
+
+        recordEvent(Event.Type.Stop);
+        saveEvents();
+
         mExecutor.shutdown();
+    }
+
+    private final void saveEvents() {
+        OutputStream os = null;
+        ObjectOutputStream oos = null;
+
+        try {
+            os = openFileOutput("logEvents", 0);
+            oos = new ObjectOutputStream(os);
+            oos.writeObject(mLogEvents);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (null != oos) {
+                try {
+                    oos.close();
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (null != os) {
+                try {
+                    os.close();
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private final void loadEvents() {
+        InputStream is = null;
+        ObjectInputStream ois = null;
+
+        try {
+            is = openFileInput("logEvents");
+            ois = new ObjectInputStream(is);
+
+            mLogEvents.addAll((Collection<Event>) ois.readObject());
+        } catch (final Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (null != ois) {
+                try {
+                    ois.close();
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (null != is) {
+                try {
+                    is.close();
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public final class Binder extends android.os.Binder {
