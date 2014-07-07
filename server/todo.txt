@@ -1,3 +1,5 @@
+automatic start on bootup
+
 thread safety?
 
 file location in config file

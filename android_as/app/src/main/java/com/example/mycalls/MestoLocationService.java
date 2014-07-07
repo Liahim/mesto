@@ -14,20 +14,19 @@ import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.text.SimpleDateFormat;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -40,12 +39,12 @@ public class MestoLocationService extends Service {
 
     private final Binder mBinder = new Binder();
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
-    private final ArrayDeque<Event> mLogEvents = new ArrayDeque<Event>(MAX_LOG_EVENTS);
+    private final LinkedList<Event> mLogEvents = new LinkedList<Event>();
     private final Collection<Runnable> mRunnableCallbacks = new HashSet<Runnable>();
     private boolean mIsReporting = true;
     private final UpnpController mUpnpController = new UpnpController();
 
-    static class Event implements Serializable {
+    static class Event {
 
         private final static Type[] sTypes = Type.values();
         final Type mType;
@@ -56,15 +55,9 @@ public class MestoLocationService extends Service {
             mTime = time;
         }
 
-        private Event(Parcel in) {
-            mType = sTypes[in.readInt()];
-            mTime = in.readLong();
-        }
-
         enum Type {
             Update,
-            Start,
-            Stop;
+            Start
         }
     }
 
@@ -79,7 +72,8 @@ public class MestoLocationService extends Service {
         super.onCreate();
 
         loadEvents();
-        recordEvent(Event.Type.Start);
+
+        persistEvent(registerEvent(Event.Type.Start));
 
         startMonitoringLocation();
         mExecutor.submit(mServer);
@@ -90,6 +84,7 @@ public class MestoLocationService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+
         final Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -97,63 +92,49 @@ public class MestoLocationService extends Service {
             }
         };
         mExecutor.submit(r);
-
-        recordEvent(Event.Type.Stop);
-        saveEvents();
-
         mExecutor.shutdown();
     }
 
-    private final void saveEvents() {
-        OutputStream os = null;
-        ObjectOutputStream oos = null;
-
-        try {
-            os = openFileOutput("logEvents", 0);
-            oos = new ObjectOutputStream(os);
-            oos.writeObject(mLogEvents);
-        } catch (final Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (null != oos) {
-                try {
-                    oos.close();
-                } catch (final IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (null != os) {
-                try {
-                    os.close();
-                } catch (final IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
     private final void loadEvents() {
-        InputStream is = null;
-        ObjectInputStream ois = null;
+        FileInputStream fis = null;
+        DataInputStream dis = null;
 
         try {
-            is = openFileInput("logEvents");
-            ois = new ObjectInputStream(is);
+            fis = openFileInput("eventLog");
 
-            mLogEvents.addAll((Collection<Event>) ois.readObject());
+            final long fileSize = fis.getChannel().size();
+            final long maxSize = MAX_LOG_EVENTS*((Byte.SIZE+Long.SIZE)/8);
+
+            int entries;
+            if (fileSize > maxSize) {
+                long offset = fileSize - maxSize;
+                fis.skip(offset);
+                entries = MAX_LOG_EVENTS;
+            } else {
+                entries = (int)(fileSize / ((Byte.SIZE+Long.SIZE)/8));
+            }
+
+            dis = new DataInputStream(fis);
+            while (entries-- > 0) {
+                final byte typeIdx = dis.readByte();
+                final long time = dis.readLong();
+                final Event ev = new Event(Event.sTypes[typeIdx], time);
+                mLogEvents.addFirst(ev);
+            }
+
         } catch (final Exception e) {
             e.printStackTrace();
         } finally {
-            if (null != ois) {
+            if (null != dis) {
                 try {
-                    ois.close();
+                    dis.close();
                 } catch (final IOException e) {
                     e.printStackTrace();
                 }
             }
-            if (null != is) {
+            if (null != fis) {
                 try {
-                    is.close();
+                    fis.close();
                 } catch (final IOException e) {
                     e.printStackTrace();
                 }
@@ -240,7 +221,7 @@ public class MestoLocationService extends Service {
 
     Collection<Event> getLogEvents() {
         synchronized (mLogEvents) {
-            return mLogEvents.clone();
+            return (Collection<Event>)mLogEvents.clone();
         }
     }
 
@@ -282,7 +263,7 @@ public class MestoLocationService extends Service {
                                 }
 
                                 if (successful) {
-                                    recordEvent(Event.Type.Update);
+                                    persistEvent(registerEvent(Event.Type.Update));
                                     for (final Runnable cb : mRunnableCallbacks) {
                                         cb.run();
                                     }
@@ -303,14 +284,48 @@ public class MestoLocationService extends Service {
         }
     }
 
-
-    private void recordEvent(Event.Type type) {
+    private final Event registerEvent(final Event.Type type) {
+        Event result = null;
         final long lastUpdateTime = System.currentTimeMillis();
+
         synchronized (mLogEvents) {
             if (MAX_LOG_EVENTS == mLogEvents.size()) {
                 mLogEvents.pollLast();
             }
-            mLogEvents.addFirst(new Event(type, lastUpdateTime));
+            result = new Event(type, lastUpdateTime);
+            mLogEvents.addFirst(result);
+        }
+
+        return result;
+    }
+
+    private final void persistEvent(final Event ev) {
+        OutputStream os = null;
+        DataOutputStream dos = null;
+
+        try {
+            os = openFileOutput("eventLog", Context.MODE_APPEND);
+            dos = new DataOutputStream(os);
+
+            dos.writeByte((byte) ev.mType.ordinal());
+            dos.writeLong(ev.mTime);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (null != dos) {
+                try {
+                    dos.close();
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (null != os) {
+                try {
+                    os.close();
+                } catch (final IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

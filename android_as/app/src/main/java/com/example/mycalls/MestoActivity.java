@@ -133,9 +133,6 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                     case Start:
                         sb.append("Started at ");
                         break;
-                    case Stop:
-                        sb.append("Stopped at ");
-                        break;
                 }
                 sb.append(mFormat.format(date));
                 sb.append('\n');
