@@ -22,6 +22,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.teleal.cling.model.types.UDN;
 
@@ -40,7 +41,9 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
     private MestoLocationService mService;
     private TextView mStatusText;
     private LinearLayout mPeersList;
+    private String mPin;    //@todo replace
     private MenuItem mMenuItemToggleReporting;
+
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
         @Override
@@ -60,8 +63,6 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             showToggleReportingIfPossible();
         }
     };
-
-    private String mPin;    //@todo replace
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -265,13 +266,20 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
     }
 
     @Override
-    public final void onAdd(final UDN udn, final AbstractList<String> info) {
+    public final void onAdded(final UDN udn, final AbstractList<String> info) {
         final Runnable r = new Runnable() {
             @Override
             public void run() {
+                if (-1 != findPeerView(udn)) {
+                    Log.i(TAG, "device " + udn + " already known");
+                    return;
+                }
+
                 final TextView tv = new TextView(MestoActivity.this);
                 tv.setText(info.get(0));
-                tv.setTag(info);
+                tv.setTag(R.id.tag_udn, udn);
+                tv.setTag(R.id.tag_info, info);
+
                 tv.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -286,28 +294,15 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                         builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(final DialogInterface dialog, final int id) {
-                                final String pin = yourPin.getText().toString();
-                                mService.getUpnpController().setPin(udn, pin);
+                                //final String pin = yourPin.getText().toString();
+                                //mService.getUpnpController().setPin(udn, pin);
                                 final int size = info.size();
 
                                 if (1 < size) {
-                                    boolean needsSave = false;
-
-                                    Set<String> uris = Utilities.loadServerUris(MestoActivity.this);
-                                    if (null == uris) {
-                                        uris = new HashSet<String>();
-                                    }
-                                    for (int i = 1; i < info.size(); ++i) {
-                                        final String s = info.get(i);
-                                        if (!uris.contains(s)) {
-                                            uris.add(s);
-                                            needsSave = true;
-                                        }
-                                    }
-
-                                    if (needsSave) {
-                                        Utilities.saveServerInfo(MestoActivity.this, uris, null);
-                                    }
+                                    final Set<String> set = new HashSet<String>(info);
+                                    set.remove(info.get(0));
+                                    Utilities.savePeerInfo(MestoActivity.this, udn.getIdentifierString(), set);
+                                    Toast.makeText(MestoActivity.this, "Peer registered", Toast.LENGTH_LONG).show();
                                 }
                             }
                         }).setNegativeButton(R.string.button_cancel, null);
@@ -321,14 +316,29 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
     }
 
     @Override
-    public void onRemove(UDN udn, String name) {
+    public void onRemoved(final UDN udn) {
         final Runnable r = new Runnable() {
             @Override
             public void run() {
-                mPeersList.removeViewAt(0);
+                final int idx = findPeerView(udn);
+                if (-1 != idx) {
+                    mPeersList.removeViewAt(idx);
+                }
             }
         };
         runOnUiThread(r);
+    }
+
+    private final int findPeerView(final UDN udn) {
+        int result = -1;
+        for (int i = 0; i < mPeersList.getChildCount(); ++i) {
+            final View v = mPeersList.getChildAt(i);
+            if (udn.equals(v.getTag(R.id.tag_udn))) {
+                result = i;
+                break;
+            }
+        }
+        return result;
     }
 
 

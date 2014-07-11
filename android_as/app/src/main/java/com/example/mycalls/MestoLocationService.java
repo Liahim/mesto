@@ -8,16 +8,14 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Parcel;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -78,7 +76,7 @@ public class MestoLocationService extends Service {
         startMonitoringLocation();
         mExecutor.submit(mServer);
 
-        //mUpnpController.initialize(this);
+        mUpnpController.initialize(this);
     }
 
     @Override
@@ -122,7 +120,10 @@ public class MestoLocationService extends Service {
                 mLogEvents.addFirst(ev);
             }
 
+        } catch (final FileNotFoundException e) {
+
         } catch (final Exception e) {
+            Log.e(TAG, "could not open events log", e);
             e.printStackTrace();
         } finally {
             if (null != dis) {
@@ -230,10 +231,12 @@ public class MestoLocationService extends Service {
             @Override
             public final void run() {
                 final Set<String> servers = Utilities.loadServerUris(MestoLocationService.this);
+
                 if (null != servers) {
+                    final Set<String> uris = Utilities.loadPeerInfo(MestoLocationService.this);
+                    servers.addAll(uris);
 
                     for (final String s : servers) {
-
                         final Runnable rr = new Runnable() {
                             @Override
                             public final void run() {

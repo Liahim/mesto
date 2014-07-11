@@ -12,7 +12,6 @@ import org.teleal.cling.controlpoint.ActionCallback;
 import org.teleal.cling.controlpoint.SubscriptionCallback;
 import org.teleal.cling.model.DefaultServiceManager;
 import org.teleal.cling.model.ValidationException;
-import org.teleal.cling.model.action.ActionArgumentValue;
 import org.teleal.cling.model.action.ActionInvocation;
 import org.teleal.cling.model.gena.CancelReason;
 import org.teleal.cling.model.gena.GENASubscription;
@@ -45,6 +44,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class UpnpController {
     final static String TAG = "MestoUpnp";
@@ -65,15 +65,15 @@ public class UpnpController {
     private final void enableLogging() {
         LoggingUtil.resetRootHandler(new FixedAndroidHandler());
 
-        /* Enable this for debug logging:
-        Logger.getLogger("org.teleal.cling.transport.Router").setLevel(Level.FINEST);
+        /*// Enable this for debug logging:
+        Logger.getLogger("org.teleal.cling.transport.Router").setLevel(Level.FINEST);*/
 
         // UDP communication
-        Logger.getLogger("org.teleal.cling.transport.spi.DatagramIO").setLevel(Level.FINE);
-        Logger.getLogger("org.teleal.cling.transport.spi.MulticastReceiver").setLevel(Level.FINE);
+        //Logger.getLogger("org.teleal.cling.transport.spi.DatagramIO").setLevel(Level.FINEST);
+        //Logger.getLogger("org.teleal.cling.transport.spi.MulticastReceiver").setLevel(Level.FINEST);
 
         // Discovery
-        Logger.getLogger("org.teleal.cling.protocol.ProtocolFactory").setLevel(Level.FINER);
+        /*Logger.getLogger("org.teleal.cling.protocol.ProtocolFactory").setLevel(Level.FINER);
         Logger.getLogger("org.teleal.cling.protocol.async").setLevel(Level.FINER);
 
         // Description
@@ -92,7 +92,7 @@ public class UpnpController {
         Logger.getLogger("org.teleal.cling.registry.RemoteItems").setLevel(Level.FINER);
         */
 
-        java.util.logging.Logger.getLogger("org.teleal.cling").setLevel(Level.WARNING);
+        Logger.getLogger("org.teleal.cling").setLevel(Level.FINE);
     }
 
     final void shutdown() {
@@ -105,16 +105,10 @@ public class UpnpController {
         return mIdentity;
     }
 
-    public final class Binder extends android.os.Binder {
-        public UpnpController getService() {
-            return UpnpController.this;
-        }
-    }
-
     interface PeerNotifications {
-        void onAdd(UDN udn, AbstractList<String> mesto);
+        void onAdded(UDN udn, AbstractList<String> mesto);
 
-        void onRemove(UDN udn, String name);
+        void onRemoved(UDN udn);
     }
 
     private final Set<PeerNotifications> mPeerNotifications
@@ -142,45 +136,20 @@ public class UpnpController {
         @Override
         public void remoteDeviceAdded(Registry registry, final RemoteDevice device) {
             Log.i(TAG, "remote device added: " + device);
-
-            Service service = device.findService(new UDAServiceId(MestoPeer.ID));
-            Action action = service.getAction("GetMesto");
-            ActionInvocation getNameInvocation = new ActionInvocation(action);
-
-            ActionCallback setTargetCallback = new ActionCallback(getNameInvocation) {
-                @Override
-                public void success(ActionInvocation invocation) {
-                    ActionArgumentValue[] output = invocation.getOutput();
-                    final CSVString mesto
-                            = new CSVString((String) invocation.getOutput("Mesto").getValue());
-                    Log.i(TAG, "remote device name retrieved: " + mesto.get(0));
-
-                    for (final PeerNotifications l : mPeerNotifications) {
-                        l.onAdd(device.getIdentity().getUdn(), mesto);
-                    }
-                }
-
-                @Override
-                public void failure(ActionInvocation invocation,
-                                    UpnpResponse operation,
-                                    String defaultMsg) {
-                    System.err.println(defaultMsg);
-                }
-            };
-
-            mUpnpService.getControlPoint().execute(setTargetCallback);
+            processDevice(device);
         }
 
         @Override
         public void remoteDeviceUpdated(Registry registry, RemoteDevice device) {
             Log.i(TAG, "remote device updated");
+            processDevice(device);
         }
 
         @Override
         public void remoteDeviceRemoved(Registry registry, RemoteDevice device) {
             Log.i(TAG, "remote device removed");
             for (final PeerNotifications l : mPeerNotifications) {
-                l.onRemove(device.getIdentity().getUdn(), "name");//@todo
+                l.onRemoved(device.getIdentity().getUdn());//@todo
             }
         }
 
@@ -202,6 +171,34 @@ public class UpnpController {
         @Override
         public void afterShutdown() {
             Log.i(TAG, "after shutdown");
+        }
+
+        private final void processDevice(final RemoteDevice device) {
+            final Service service = device.findService(new UDAServiceId(MestoPeer.ID));
+            final Action action = service.getAction("GetMesto");
+            final ActionInvocation invocation = new ActionInvocation(action);
+
+            final ActionCallback setTargetCallback = new ActionCallback(invocation) {
+                @Override
+                public void success(ActionInvocation invocation) {
+                    final CSVString mesto
+                            = new CSVString((String) invocation.getOutput("Mesto").getValue());
+                    Log.i(TAG, "remote device name retrieved: " + mesto.get(0));
+
+                    for (final PeerNotifications l : mPeerNotifications) {
+                        l.onAdded(device.getIdentity().getUdn(), mesto);
+                    }
+                }
+
+                @Override
+                public void failure(ActionInvocation invocation,
+                                    UpnpResponse operation,
+                                    String defaultMsg) {
+                    System.err.println(defaultMsg);
+                }
+            };
+
+            mUpnpService.getControlPoint().execute(setTargetCallback);
         }
     };
 
@@ -289,9 +286,9 @@ public class UpnpController {
     final LocalDevice createDevice() throws IOException, ValidationException {
 
         final DeviceType type = new UDADeviceType(MestoPeer.ID, 1);
-        final DeviceDetails details = new DeviceDetails("Friendly Binary Light",
-                new ManufacturerDetails("MRM"), new ModelDetails("BinLight2000",
-                "A demo light with on/off switch", "v1")
+        final DeviceDetails details = new DeviceDetails("Mesto Mobile Client",
+                new ManufacturerDetails("Mesto"), new ModelDetails("Mesto 1",
+                "Mesto location service", "v1")
         );
 
         final LocalService<MestoPeer> service = new AnnotationLocalServiceBinder().read(MestoPeer.class);

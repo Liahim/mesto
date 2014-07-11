@@ -13,19 +13,16 @@ import java.net.NetworkInterface;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public final class Utilities {
+
+    public static final String PREFIX_PEER = "peer_";
+
     private Utilities() {
     }
 
-
-    /**
-     * Get IP address from first non-localhost interface
-     *
-     * @param ipv4 true=return ipv4, false=return ipv6
-     * @return address or empty string
-     */
     static String getIPAddress(boolean useIPv4) {
         try {
             List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
@@ -91,6 +88,33 @@ public final class Utilities {
 
         final Pair<Set<String>, Set<String>> result = new Pair<Set<String>, Set<String>>(uris, serverHistory);
         return result;
+    }
+
+    static final void savePeerInfo(
+            final Context ctx, final String udn, final Set<String> uris) {
+        final SharedPreferences sp
+                = ctx.getApplicationContext().getSharedPreferences("settings", Context.MODE_PRIVATE);
+        final SharedPreferences.Editor editor = sp.edit();
+
+        editor.putStringSet(PREFIX_PEER + udn, uris);
+        editor.apply();
+    }
+
+    static final Set<String> loadPeerInfo(final Context ctx) {
+        final SharedPreferences sp
+                = ctx.getApplicationContext().getSharedPreferences("settings", Context.MODE_PRIVATE);
+
+        final Set<String> results = new HashSet<String>();
+        final Map<String, ?> all = sp.getAll();
+        for (final String s : all.keySet()) {
+            int idx = s.indexOf(PREFIX_PEER);
+            if (-1 != idx) {
+                final Set<String> uris = (Set<String>) all.get(s);
+                results.addAll(uris);
+            }
+        }
+
+        return results;
     }
 
 }
