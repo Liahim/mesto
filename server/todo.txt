@@ -1,4 +1,4 @@
-automatic start on bootup
+automatic start on bootup;startup script for ubuntu
 
 thread safety?
 
