@@ -53,7 +53,6 @@ public class MapViewActivity extends Activity {
         public final void onServiceConnected(final ComponentName name, final IBinder service) {
             Log.i(TAG, "onServiceConnected");
             mService = ((MestoLocationService.Binder) service).getService();
-            mService.addRunnableCallback(mRunnable);
             mService.addEventNotificationListener(mListener);
         }
     };
@@ -97,24 +96,6 @@ public class MapViewActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-    private final Runnable mRunnable = new Runnable() {
-        @Override
-        public final void run() {
-            final Location l = mService.getLocation();
-            if (null != l) {
-                final LatLng ll = new LatLng(l.getLatitude(), l.getLongitude());
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mMap.clear();
-                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ll, 10));
-                        mMap.addMarker(new MarkerOptions().position(ll).title("Me"));
-                    }
-                });
-            }
-        }
-    };
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -134,9 +115,9 @@ public class MapViewActivity extends Activity {
                     final List<Address> addresses = geocoder.getFromLocationName(places[idx], 1);
 
                     if (addresses.size() > 0) {
-                        final Set<String> server = Utilities.loadServerUris(MapViewActivity.this);
-                        if (null != server) {
-                            final URI uri = new URI("tcp://" + server);
+                        final Set<String> uris = Utilities.loadEndPoints(MapViewActivity.this);
+                        if (null != uris) {
+                            final URI uri = new URI("tcp://" + uris);
                             final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
                             try {
@@ -164,7 +145,7 @@ public class MapViewActivity extends Activity {
     private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.US);
     private final EventNotificationListener mListener = new EventNotificationListener() {
         @Override
-        public void onEvent(double latitude, double longitude) {
+        public void onEvent(final String udn, final String product, double latitude, double longitude) {
             Log.i(TAG, "received location update: " + latitude + ", " + longitude);
             final long now = System.currentTimeMillis();
             final String title = mFormat.format(new Date(now));
@@ -175,7 +156,7 @@ public class MapViewActivity extends Activity {
                 public void run() {
                     mMap.clear();
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(ll, 10));
-                    mMap.addMarker(new MarkerOptions().position(ll).title(title));
+                    mMap.addMarker(new MarkerOptions().position(ll).title(product + '\n' + title));
                 }
             });
         }

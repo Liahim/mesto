@@ -6,20 +6,18 @@ import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
-import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +41,8 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
     private LinearLayout mPeersList;
     private String mPin;    //@todo replace
     private MenuItem mMenuItemToggleReporting;
+
+    private String mStatusTextString;
 
 
     private final ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -105,7 +105,7 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         unbindService(mServiceConnection);
     }
 
-    private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.US);
+    private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy H:mm:ss z", Locale.US);
     private final Runnable mRunnable = new Runnable() {
         @Override
         public final void run() {
@@ -119,9 +119,7 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         }
     };
 
-    private String mStatusTextString;
-
-    private final void prepareStatusText() {
+    private final synchronized void prepareStatusText() {
         try {
             final Collection<MestoLocationService.Event> events = mService.getLogEvents();
             final StringBuilder sb = new StringBuilder();
@@ -215,11 +213,9 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         final AutoCompleteTextView serverAddress
                 = (AutoCompleteTextView) view.findViewById(R.id.serverAddress);
 
-        final Pair<Set<String>, Set<String>> pair = Utilities.loadServerInfo(MestoActivity.this);
-        if (null != pair.first) {
-            for (final String s : pair.first) {
-                serverAddress.setText(s + '\n');
-            }
+        final Utilities.PeerInfo pi = Utilities.loadPeerInfoFull(MestoActivity.this, Utilities.UDN_USER_SPECIFIED);
+        for (final String s : pi.uris) {
+            serverAddress.setText(s + '\n');
         }
 
         final TextView tv = (TextView) view.findViewById(R.id.localServer);
@@ -227,35 +223,21 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         final String wlanName = Utilities.getWlanName(this);
         tv.setText("Local server running at " + ipAddress + ":50001\nUsing wlan " + wlanName);
 
-        if (null != pair.second && !pair.second.isEmpty()) {
-            final String[] history = new String[pair.second.size()];
-            final ArrayAdapter<String> autoCompleteAdapter
-                    = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, pair.second.toArray(history));
-            serverAddress.setAdapter(autoCompleteAdapter);
-        }
-
         builder.setView(view)
                 .setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(final DialogInterface dialog, final int id) {
                         final String server = serverAddress.getText().toString();
+                        final Set<String> uris = new HashSet<String>();
 
-                        final Set<String> historySet;
-                        if (null == pair.second) {
-                            historySet = new HashSet<String>();
-                        } else {
-                            historySet = pair.second;
-                        }
-                        historySet.add(server);
-
-                        if (null == pair.first || !pair.first.contains(server)) {
+                        if (!server.isEmpty()) {
                             final String[] tmp = server.split("\n");
-                            final Set<String> uris = new HashSet<String>();
                             Collections.addAll(uris, tmp);
-
-                            Utilities.saveServerInfo(MestoActivity.this.getApplicationContext(), uris, historySet);
-                            mService.sendLocation();
                         }
+
+                        Utilities.savePeerInfo(MestoActivity.this.getApplicationContext(),
+                                Utilities.UDN_USER_SPECIFIED, uris, Utilities.UDN_USER_SPECIFIED);
+                        mService.sendLocation();
                     }
                 })
                 .setNegativeButton(R.string.button_cancel, null);
@@ -271,14 +253,20 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             @Override
             public void run() {
                 if (-1 != findPeerView(udn)) {
-                    Log.i(TAG, "device " + udn + " already known");
+                    Log.i(TAG, "device " + udn + " already displayed");
                     return;
                 }
 
-                final TextView tv = new TextView(MestoActivity.this);
+                final String identifier = udn.getIdentifierString();
+                final LayoutInflater inflater = getLayoutInflater();
+                final TextView tv = (TextView) inflater.inflate(R.layout.list_element_peer, null);
                 tv.setText(info.get(0));
                 tv.setTag(R.id.tag_udn, udn);
                 tv.setTag(R.id.tag_info, info);
+                final Utilities.PeerInfo pi = Utilities.loadPeerInfoFull(MestoActivity.this, identifier);
+                if (!pi.uris.isEmpty()) {
+                    tv.setTextColor(Color.GREEN);
+                }
 
                 tv.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -287,9 +275,9 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                         final LayoutInflater inflater = getLayoutInflater();
 
                         final View view = inflater.inflate(R.layout.dialog_pin, null);
-                        final TextView myPin = (TextView) view.findViewById(R.id.tv_mypin);
+                        /*final TextView myPin = (TextView) view.findViewById(R.id.tv_mypin);
                         myPin.setText(mPin);
-                        final EditText yourPin = (EditText) view.findViewById(R.id.et_yourpin);
+                        final EditText yourPin = (EditText) view.findViewById(R.id.et_yourpin);*/
 
                         builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
                             @Override
@@ -301,7 +289,9 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                                 if (1 < size) {
                                     final Set<String> set = new HashSet<String>(info);
                                     set.remove(info.get(0));
-                                    Utilities.savePeerInfo(MestoActivity.this, udn.getIdentifierString(), set);
+                                    Utilities.savePeerInfo(MestoActivity.this, identifier, set, info.get(0));
+
+                                    tv.setTextColor(Color.GREEN);
                                     Toast.makeText(MestoActivity.this, "Peer registered", Toast.LENGTH_LONG).show();
                                 }
                             }

@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
@@ -101,7 +103,7 @@ public class MestoLocationService extends Service {
             fis = openFileInput("eventLog");
 
             final long fileSize = fis.getChannel().size();
-            final long maxSize = MAX_LOG_EVENTS*((Byte.SIZE+Long.SIZE)/8);
+            final long maxSize = MAX_LOG_EVENTS * ((Byte.SIZE + Long.SIZE) / 8);
 
             int entries;
             if (fileSize > maxSize) {
@@ -109,7 +111,7 @@ public class MestoLocationService extends Service {
                 fis.skip(offset);
                 entries = MAX_LOG_EVENTS;
             } else {
-                entries = (int)(fileSize / ((Byte.SIZE+Long.SIZE)/8));
+                entries = (int) (fileSize / ((Byte.SIZE + Long.SIZE) / 8));
             }
 
             dis = new DataInputStream(fis);
@@ -222,7 +224,7 @@ public class MestoLocationService extends Service {
 
     Collection<Event> getLogEvents() {
         synchronized (mLogEvents) {
-            return (Collection<Event>)mLogEvents.clone();
+            return (Collection<Event>) mLogEvents.clone();
         }
     }
 
@@ -230,52 +232,48 @@ public class MestoLocationService extends Service {
         final Runnable r = new Runnable() {
             @Override
             public final void run() {
-                final Set<String> servers = Utilities.loadServerUris(MestoLocationService.this);
+                final Set<String> servers = Utilities.loadEndPoints(MestoLocationService.this);
+                for (final String s : servers) {
+                    final Runnable rr = new Runnable() {
+                        @Override
+                        public final void run() {
+                            boolean successful = false;
+                            for (int i = 0; i < 3; ++i) {
+                                try {
+                                    final URI uri = new URI("tcp://" + s);
+                                    final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
-                if (null != servers) {
-                    final Set<String> uris = Utilities.loadPeerInfo(MestoLocationService.this);
-                    servers.addAll(uris);
+                                    final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+                                    final DataOutputStream dos = new DataOutputStream(baos);
 
-                    for (final String s : servers) {
-                        final Runnable rr = new Runnable() {
-                            @Override
-                            public final void run() {
-                                boolean successful = false;
-                                for (int i = 0; i < 3; ++i) {
-                                    try {
-                                        Log.i(TAG, "trying to update peer " + s);
-                                        final URI uri = new URI("tcp://" + s);
-                                        final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
+                                    dos.writeDouble(location.getLatitude());
+                                    dos.writeDouble(location.getLongitude());
+                                    dos.writeUTF(mUpnpController.getDeviceIdentity().getUdn().getIdentifierString());
+                                    dos.writeUTF(Build.PRODUCT);
 
-                                        final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
-                                        final DataOutputStream dos = new DataOutputStream(baos);
+                                    final byte[] bytes = baos.toByteArray();
+                                    s.getOutputStream().write(bytes);
+                                    s.close();
 
-                                        dos.writeDouble(location.getLatitude());
-                                        dos.writeDouble(location.getLongitude());
-                                        dos.writeUTF(mUpnpController.getDeviceIdentity().getUdn().getIdentifierString());
-
-                                        final byte[] bytes = baos.toByteArray();
-                                        s.getOutputStream().write(bytes);
-                                        s.close();
-
-                                        successful = true;
-                                        break;
-                                    } catch (final Exception e) {
-                                        Log.e(TAG, "error while sending update to server", e);
-                                    }
-                                }
-
-                                if (successful) {
-                                    persistEvent(registerEvent(Event.Type.Update));
-                                    for (final Runnable cb : mRunnableCallbacks) {
-                                        cb.run();
-                                    }
+                                    successful = true;
+                                    Log.i(TAG, "peer " + s + " updated");
+                                    break;
+                                } catch (final Exception e) {
+                                    Log.e(TAG, "error while sending update to server; exc: " + e);
+                                    SystemClock.sleep(3000);
                                 }
                             }
-                        };
 
-                        mExecutor.execute(rr);
-                    }
+                            if (successful) {
+                                persistEvent(registerEvent(Event.Type.Update));
+                                for (final Runnable cb : mRunnableCallbacks) {
+                                    cb.run();
+                                }
+                            }
+                        }
+                    };
+
+                    mExecutor.execute(rr);
                 }
             }
         };
@@ -334,7 +332,7 @@ public class MestoLocationService extends Service {
 
     final void addRunnableCallback(final Runnable r) {
         if (mRunnableCallbacks.add(r)) {
-            r.run();
+            mExecutor.submit(r);
         }
     }
 
@@ -362,7 +360,7 @@ public class MestoLocationService extends Service {
     };
 
     interface EventNotificationListener {
-        void onEvent(double latitude, double longitude);
+        void onEvent(String udn, String product, double latitude, double longitude);
     }
 
     final Set<EventNotificationListener> mEventNotificationListeners = new HashSet<EventNotificationListener>();
@@ -393,9 +391,11 @@ public class MestoLocationService extends Service {
 
                 final double latitude = dis.readDouble();
                 final double longitude = dis.readDouble();
+                final String udn = dis.readUTF();
+                final String product = dis.readUTF();
 
                 for (EventNotificationListener l : mEventNotificationListeners) {
-                    l.onEvent(latitude, longitude);
+                    l.onEvent(udn, product, latitude, longitude);
                 }
             } catch (final IOException e) {
                 e.printStackTrace();
