@@ -75,12 +75,11 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		/* Create child process */
-		/*int pid = fork();
+		int pid = fork();
 		if (pid < 0) {
 			perror("ERROR on fork");
 			exit(1);
-		}*/
-		int pid = 0;
+		}
 		if (pid == 0) {
 			/* This is the client process */
 			close(sockfd);

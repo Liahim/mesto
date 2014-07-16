@@ -42,7 +42,7 @@ public class MestoLocationService extends Service {
     private final LinkedList<Event> mLogEvents = new LinkedList<Event>();
     private final Collection<Runnable> mRunnableCallbacks = new HashSet<Runnable>();
     private boolean mIsReporting = true;
-    private UpnpController mUpnpController = new UpnpController();
+    private UpnpController mUpnpController;
 
     static class Event {
 
@@ -78,7 +78,8 @@ public class MestoLocationService extends Service {
         startMonitoringLocation();
         mExecutor.submit(mServer);
 
-        mUpnpController.initialize(this);
+        //mUpnpController = new UpnpController();
+        //mUpnpController.initialize(this);
     }
 
     @Override
