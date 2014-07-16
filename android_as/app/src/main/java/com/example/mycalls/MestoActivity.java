@@ -42,6 +42,7 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
     private LinearLayout mPeersList;
     private String mPin;    //@todo replace
     private MenuItem mMenuItemToggleReporting;
+    private MenuItem mMenuItemToggleUpnp;
 
     private String mStatusTextString;
 
@@ -62,6 +63,7 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             mService.getUpnpController().addPeerNotificationsListener(MestoActivity.this);
 
             showToggleReportingIfPossible();
+            showToggleUpnpIfPossible();
         }
     };
 
@@ -169,6 +171,9 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         mMenuItemToggleReporting = menu.findItem(R.id.menu_toggle_reporting);
         showToggleReportingIfPossible();
 
+        mMenuItemToggleUpnp = menu.findItem(R.id.menu_toggle_upnp);
+        showToggleUpnpIfPossible();
+
         menu.findItem(R.id.menu_dump_peers).setOnMenuItemClickListener(new OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(final MenuItem item) {
@@ -177,6 +182,23 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             }
         });
         return true;
+    }
+
+    private void showToggleUpnpIfPossible() {
+        if (null != mMenuItemToggleUpnp) {
+            final boolean serviceConnected = null != mService;
+            mMenuItemToggleUpnp.setVisible(serviceConnected);
+            if (serviceConnected) {
+                establishToggleUpnpState(mMenuItemToggleUpnp, !mService.isUpnpOn(), false);
+                mMenuItemToggleUpnp.setOnMenuItemClickListener(new OnMenuItemClickListener() {
+                    @Override
+                    public final boolean onMenuItemClick(final MenuItem item) {
+                        establishToggleUpnpState(item, mService.isUpnpOn(), true);
+                        return true;
+                    }
+                });
+            }
+        }
     }
 
     private void showToggleReportingIfPossible() {
@@ -211,6 +233,23 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             }
             prepareStatusText();
             displayStatusText();
+        }
+    }
+
+    private final void establishToggleUpnpState(final MenuItem item, final boolean showUpnp,
+                                                     final boolean toggle) {
+        if (showUpnp) {
+            item.setTitle(R.string.start_upnp);
+            if (toggle) {
+                mService.stopUpnp();
+                mPeersList.removeAllViews();
+            }
+            mStatusText.setText("Upnp stopped");
+        } else {
+            item.setTitle(R.string.stop_upnp);
+            if (toggle) {
+                mService.startUpnp();
+            }
         }
     }
 
@@ -282,10 +321,6 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                             final LayoutInflater inflater = getLayoutInflater();
 
                             final View view = inflater.inflate(R.layout.dialog_pin, null);
-                        /*final TextView myPin = (TextView) view.findViewById(R.id.tv_mypin);
-                        myPin.setText(mPin);
-                        final EditText yourPin = (EditText) view.findViewById(R.id.et_yourpin);*/
-
                             builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(final DialogInterface dialog, final int id) {

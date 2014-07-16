@@ -42,7 +42,7 @@ public class MestoLocationService extends Service {
     private final LinkedList<Event> mLogEvents = new LinkedList<Event>();
     private final Collection<Runnable> mRunnableCallbacks = new HashSet<Runnable>();
     private boolean mIsReporting = true;
-    private final UpnpController mUpnpController = new UpnpController();
+    private UpnpController mUpnpController = new UpnpController();
 
     static class Event {
 
@@ -209,8 +209,35 @@ public class MestoLocationService extends Service {
         }
     }
 
+    boolean isUpnpOn() {
+        return null != mUpnpController;
+    }
+
     boolean isReporting() {
         return mIsReporting;
+    }
+
+    void stopUpnp() {
+        Log.i(TAG, "stop upnp");
+        if (null != mUpnpController) {
+            final UpnpController uc = mUpnpController;
+            mUpnpController = null;
+            final Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    uc.shutdown();
+                }
+            };
+            mExecutor.submit(r);
+        }
+    }
+
+    void startUpnp() {
+        Log.i(TAG, "start upnp");
+        if (null == mUpnpController) {
+            mUpnpController = new UpnpController();
+            mUpnpController.initialize(this);
+        }
     }
 
     void stopReporting() {

@@ -19,8 +19,14 @@
         android:title="@string/stop_reporting"/>
 
     <item
-        android:id="@+id/menu_dump_peers"
+        android:id="@+id/menu_toggle_upnp"
         android:orderInCategory="103"
+        android:showAsAction="never"
+        android:title="@string/stop_upnp"/>
+
+    <item
+        android:id="@+id/menu_dump_peers"
+        android:orderInCategory="104"
         android:showAsAction="never"
         android:title="Dump Peers"/>
 
