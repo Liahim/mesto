@@ -197,10 +197,10 @@ public class MestoLocationService extends Service {
 
     public void sendLocation() {
         if (null != mLastLocation) {
-            final Location l = new Location(mLastLocation);
+            /*final Location l = new Location(mLastLocation);
             l.setLatitude(37.390017);
             l.setLongitude(-121.955094);
-            sendLocation(l, "TestDeviceUdn", "TestDevice");
+            sendLocation(l, "TestDeviceUdn", "TestDevice");*/
 
             sendLocation(mLastLocation,
                     mUpnpController.getDeviceIdentity().getUdn().getIdentifierString(), Build.DEVICE);
