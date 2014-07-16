@@ -63,7 +63,7 @@ public class UpnpController {
     }
 
     private final void enableLogging() {
-        LoggingUtil.resetRootHandler(new FixedAndroidHandler());
+        //LoggingUtil.resetRootHandler(new FixedAndroidHandler());
 
         /*// Enable this for debug logging:
         Logger.getLogger("org.teleal.cling.transport.Router").setLevel(Level.FINEST);*/
@@ -92,7 +92,7 @@ public class UpnpController {
         Logger.getLogger("org.teleal.cling.registry.RemoteItems").setLevel(Level.FINER);
         */
 
-        Logger.getLogger("org.teleal.cling").setLevel(Level.FINE);
+        Logger.getLogger("org.teleal.cling").setLevel(Level.INFO);
     }
 
     final void shutdown() {

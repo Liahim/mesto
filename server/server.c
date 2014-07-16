@@ -1,3 +1,5 @@
+#include <sys/mman.h>
+
 #include <strings.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,13 +14,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/mman.h>
 #include <sys/types.h>
 #include <fcntl.h>
 
 #include <sys/wait.h>
 #include <unistd.h>
 #include <time.h>
+#include <signal.h>
 
 void doprocessing(int sock);
 
@@ -32,7 +34,7 @@ int main(int argc, char *argv[]) {
 	sigaction(SIGCHLD, &sigchld_action, NULL);
 
 	glob_var = mmap(NULL, sizeof *glob_var, PROT_READ | PROT_WRITE,
-	MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+			MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if (MAP_FAILED == glob_var) {
 		perror("mmap failed");
 		exit(1);
@@ -73,11 +75,12 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		/* Create child process */
-		int pid = fork();
+		/*int pid = fork();
 		if (pid < 0) {
 			perror("ERROR on fork");
 			exit(1);
-		}
+		}*/
+		int pid = 0;
 		if (pid == 0) {
 			/* This is the client process */
 			close(sockfd);
@@ -109,30 +112,51 @@ void doprocessing(int sock) {
 		double d;
 	} lat, lon;
 
-	lon.b[0] = buffer[7];
-	lon.b[1] = buffer[6];
-	lon.b[2] = buffer[5];
-	lon.b[3] = buffer[4];
-	lon.b[4] = buffer[3];
-	lon.b[5] = buffer[2];
-	lon.b[6] = buffer[1];
-	lon.b[7] = buffer[0];
+	int offset = 0;
+
+	//udn utf-8 string
+	short udnLength = buffer[offset++]<<8;
+	udnLength |= buffer[offset++];
+
+	char* udn = malloc(udnLength);
+	memcpy(udn, buffer+offset, udnLength);
+	offset += udnLength;
+
+	//title utf-8 string
+	short titleLength = buffer[offset++]<<8;
+	titleLength |= buffer[offset++];
+
+	char* title = malloc(udnLength);
+	memcpy(title, buffer+offset, titleLength);
+	offset += titleLength;
+
+	lon.b[7] = buffer[offset++];
+	lon.b[6] = buffer[offset++];
+	lon.b[5] = buffer[offset++];
+	lon.b[4] = buffer[offset++];
+	lon.b[3] = buffer[offset++];
+	lon.b[2] = buffer[offset++];
+	lon.b[1] = buffer[offset++];
+	lon.b[0] = buffer[offset++];
 	*glob_var = lon.d;
 
-	lat.b[0] = buffer[15];
-	lat.b[1] = buffer[14];
-	lat.b[2] = buffer[13];
-	lat.b[3] = buffer[12];
-	lat.b[4] = buffer[11];
-	lat.b[5] = buffer[10];
-	lat.b[6] = buffer[9];
-	lat.b[7] = buffer[8];
+	lat.b[7] = buffer[offset++];
+	lat.b[6] = buffer[offset++];
+	lat.b[5] = buffer[offset++];
+	lat.b[4] = buffer[offset++];
+	lat.b[3] = buffer[offset++];
+	lat.b[2] = buffer[offset++];
+	lat.b[1] = buffer[offset++];
+	lat.b[0] = buffer[offset++];
 
 	int fd = open ("/opt/share/httpd/coord.json", O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	char msg[128] = {0};
-	sprintf(msg, "{\"lon\":%.6lf,\"lat\":%.6lf}", lon.d, lat.d);
+	sprintf(msg, "{\"lon\":%.6lf,\"lat\":%.6lf,\"title\":\"%s\"}", lon.d, lat.d, title);
 	write(fd, msg, strlen(msg));
 	close(fd);
+
+	free(udn);
+	free(title);
 
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);

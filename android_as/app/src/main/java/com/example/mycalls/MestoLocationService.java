@@ -276,10 +276,10 @@ public class MestoLocationService extends Service {
                                     final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
                                     final DataOutputStream dos = new DataOutputStream(baos);
 
-                                    dos.writeDouble(location.getLatitude());
-                                    dos.writeDouble(location.getLongitude());
                                     dos.writeUTF(udn);
                                     dos.writeUTF(title);
+                                    dos.writeDouble(location.getLatitude());
+                                    dos.writeDouble(location.getLongitude());
 
                                     final byte[] bytes = baos.toByteArray();
                                     s.getOutputStream().write(bytes);

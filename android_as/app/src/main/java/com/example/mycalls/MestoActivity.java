@@ -26,6 +26,7 @@ import org.teleal.cling.model.types.UDN;
 
 import java.text.SimpleDateFormat;
 import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -242,13 +243,24 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             item.setTitle(R.string.start_upnp);
             if (toggle) {
                 mService.stopUpnp();
-                mPeersList.removeAllViews();
+
+                final Collection<View> views = new ArrayList<View>();
+                for (int i=0; i<mPeersList.getChildCount();++i) {
+                    final View v = mPeersList.getChildAt(i);
+                    if (null != v.getTag(R.id.tag_udn)) {
+                        views.add(v);
+                    }
+                }
+                for (final View v : views) {
+                    mPeersList.removeView(v);
+                }
             }
             mStatusText.setText("Upnp stopped");
         } else {
             item.setTitle(R.string.stop_upnp);
             if (toggle) {
                 mService.startUpnp();
+                mService.getUpnpController().addPeerNotificationsListener(MestoActivity.this);
             }
         }
     }
@@ -304,6 +316,8 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
                 final String identifier = udn.getIdentifierString();
 
                 if (!known) {
+                    Log.i(TAG, "adding new peer " + info.get(0) + "; " + identifier);
+
                     final LayoutInflater inflater = getLayoutInflater();
                     final TextView tv = (TextView) inflater.inflate(R.layout.list_element_peer, null);
                     tv.setText(info.get(0));
