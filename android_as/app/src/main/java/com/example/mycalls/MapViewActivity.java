@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.location.Address;
 import android.location.Geocoder;
-import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -18,6 +17,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.ByteArrayOutputStream;
@@ -27,8 +27,10 @@ import java.net.Socket;
 import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -99,6 +101,7 @@ public class MapViewActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        mMarkers.clear();
         unbindService(mServiceConnection);
     }
 
@@ -142,6 +145,7 @@ public class MapViewActivity extends Activity {
         new Thread(r).start();
     }
 
+    private final Map<String, Marker> mMarkers = new HashMap<String, Marker>();
     private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.US);
     private final EventNotificationListener mListener = new EventNotificationListener() {
         @Override
@@ -154,9 +158,16 @@ public class MapViewActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mMap.clear();
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(ll, 10));
-                    mMap.addMarker(new MarkerOptions().position(ll).title(product + '\n' + title));
+
+                    Marker m = mMarkers.get(udn);
+                    if (null != m) {
+                        m.setPosition(ll);
+                        m.setTitle(product + '\n' + title);
+                    } else {
+                        m = mMap.addMarker(new MarkerOptions().position(ll).title(product + '\n' + title));
+                        mMarkers.put(udn, m);
+                    }
                 }
             });
         }

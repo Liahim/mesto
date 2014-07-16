@@ -162,7 +162,8 @@ public class MestoLocationService extends Service {
             mLastLocation = location;
             Log.d(TAG, "location: " + location);
             if (mIsReporting) {
-                sendLocation(location);
+                sendLocation(location,
+                        mUpnpController.getDeviceIdentity().getUdn().getIdentifierString(), Build.DEVICE);
             }
         }
 
@@ -194,13 +195,15 @@ public class MestoLocationService extends Service {
         locationManager.removeUpdates(mLocationListener);
     }
 
-    public Location getLocation() {
-        return mLastLocation;
-    }
-
     public void sendLocation() {
         if (null != mLastLocation) {
-            sendLocation(mLastLocation);
+            final Location l = new Location(mLastLocation);
+            l.setLatitude(37.390017);
+            l.setLongitude(-121.955094);
+            sendLocation(l, "TestDeviceUdn", "TestDevice");
+
+            sendLocation(mLastLocation,
+                    mUpnpController.getDeviceIdentity().getUdn().getIdentifierString(), Build.DEVICE);
         } else {
             Log.e(TAG, "no known last location");
         }
@@ -228,7 +231,7 @@ public class MestoLocationService extends Service {
         }
     }
 
-    private void sendLocation(final Location location) {
+    private void sendLocation(final Location location, final String udn, final String title) {
         final Runnable r = new Runnable() {
             @Override
             public final void run() {
@@ -248,8 +251,8 @@ public class MestoLocationService extends Service {
 
                                     dos.writeDouble(location.getLatitude());
                                     dos.writeDouble(location.getLongitude());
-                                    dos.writeUTF(mUpnpController.getDeviceIdentity().getUdn().getIdentifierString());
-                                    dos.writeUTF(Build.PRODUCT);
+                                    dos.writeUTF(udn);
+                                    dos.writeUTF(title);
 
                                     final byte[] bytes = baos.toByteArray();
                                     s.getOutputStream().write(bytes);
