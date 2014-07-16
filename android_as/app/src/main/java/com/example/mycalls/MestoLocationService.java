@@ -78,7 +78,7 @@ public class MestoLocationService extends Service {
         startMonitoringLocation();
         mExecutor.submit(mServer);
 
-        //mUpnpController.initialize(this);
+        mUpnpController.initialize(this);
     }
 
     @Override

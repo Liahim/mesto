@@ -101,7 +101,7 @@ public final class Utilities {
         return pi;
     }
 
-    static final Map<String, PeerInfo> loadPeerInfoFull(final Context ctx) {
+    static final Map<String, PeerInfo> loadAllPeersInfo(final Context ctx) {
         final SharedPreferences sp = getSharedPreferences(ctx);
 
         final Map<String, PeerInfo> result = new HashMap<String, PeerInfo>();

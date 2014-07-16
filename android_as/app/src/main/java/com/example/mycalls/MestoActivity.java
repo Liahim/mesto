@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public final class MestoActivity extends Activity implements UpnpController.PeerNotifications {
@@ -167,6 +168,14 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
 
         mMenuItemToggleReporting = menu.findItem(R.id.menu_toggle_reporting);
         showToggleReportingIfPossible();
+
+        menu.findItem(R.id.menu_dump_peers).setOnMenuItemClickListener(new OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(final MenuItem item) {
+                onMenuDumpPeers();
+                return true;
+            }
+        });
         return true;
     }
 
@@ -252,57 +261,63 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
         final Runnable r = new Runnable() {
             @Override
             public void run() {
-                if (-1 != findPeerView(udn)) {
-                    Log.i(TAG, "device " + udn + " already displayed");
-                    return;
-                }
-
+                final boolean known = -1 != findPeerView(udn);
                 final String identifier = udn.getIdentifierString();
-                final LayoutInflater inflater = getLayoutInflater();
-                final TextView tv = (TextView) inflater.inflate(R.layout.list_element_peer, null);
-                tv.setText(info.get(0));
-                tv.setTag(R.id.tag_udn, udn);
-                tv.setTag(R.id.tag_info, info);
-                final Utilities.PeerInfo pi = Utilities.loadPeerInfoFull(MestoActivity.this, identifier);
-                if (!pi.uris.isEmpty()) {
-                    tv.setTextColor(Color.GREEN);
-                }
 
-                tv.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
-                        final LayoutInflater inflater = getLayoutInflater();
+                if (!known) {
+                    final LayoutInflater inflater = getLayoutInflater();
+                    final TextView tv = (TextView) inflater.inflate(R.layout.list_element_peer, null);
+                    tv.setText(info.get(0));
+                    tv.setTag(R.id.tag_udn, udn);
+                    tv.setTag(R.id.tag_info, info);
+                    final Utilities.PeerInfo pi = Utilities.loadPeerInfoFull(MestoActivity.this, identifier);
+                    if (!pi.uris.isEmpty()) {
+                        tv.setTextColor(Color.GREEN);
+                    }
 
-                        final View view = inflater.inflate(R.layout.dialog_pin, null);
+                    tv.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
+                            final LayoutInflater inflater = getLayoutInflater();
+
+                            final View view = inflater.inflate(R.layout.dialog_pin, null);
                         /*final TextView myPin = (TextView) view.findViewById(R.id.tv_mypin);
                         myPin.setText(mPin);
                         final EditText yourPin = (EditText) view.findViewById(R.id.et_yourpin);*/
 
-                        builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(final DialogInterface dialog, final int id) {
-                                //final String pin = yourPin.getText().toString();
-                                //mService.getUpnpController().setPin(udn, pin);
-                                final int size = info.size();
-
-                                if (1 < size) {
-                                    final Set<String> set = new HashSet<String>(info);
-                                    set.remove(info.get(0));
-                                    Utilities.savePeerInfo(MestoActivity.this, identifier, set, info.get(0));
-
-                                    tv.setTextColor(Color.GREEN);
-                                    Toast.makeText(MestoActivity.this, "Peer registered", Toast.LENGTH_LONG).show();
+                            builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(final DialogInterface dialog, final int id) {
+                                    savePeer(info, identifier, tv);
                                 }
-                            }
-                        }).setNegativeButton(R.string.button_cancel, null);
-                        builder.create().show();
-                    }
-                });
-                mPeersList.addView(tv);
+                            }).setNegativeButton(R.string.button_cancel, null);
+                            builder.create().show();
+                        }
+                    });
+                    mPeersList.addView(tv);
+                } else {
+                    savePeer(info, identifier, null);
+                    Log.i(TAG, "updated persisted peer info for " + info.get(0) + "; " + identifier);
+                }
             }
         };
         runOnUiThread(r);
+    }
+
+    private void savePeer(final AbstractList<String> info, final String identifier, final TextView tv) {
+        final int size = info.size();
+
+        if (1 < size) {
+            final Set<String> set = new HashSet<String>(info);
+            set.remove(info.get(0));
+            Utilities.savePeerInfo(this, identifier, set, info.get(0));
+
+            if (null != tv) {
+                tv.setTextColor(Color.GREEN);
+                Toast.makeText(this, "Peer registered", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     @Override
@@ -364,4 +379,23 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
     String txt = new String(c.doFinal(bytes), "UTF-8");
     System.err.println("txt: "+txt);
 }*/
+
+    private final void onMenuDumpPeers() {
+        if (null != mService) {
+            final Map<String, Utilities.PeerInfo> peers = Utilities.loadAllPeersInfo(this);
+            String s = "";  // to sb, check bcode
+            for (Map.Entry<String, Utilities.PeerInfo> info : peers.entrySet()) {
+                s += "Peer udn: " + info.getKey() + "; title: " + info.getValue().title + '\n';
+                for (final String ss : info.getValue().uris) {
+                    s += "Endpoint: " + ss + '\n';
+                }
+            }
+
+            mStatusTextString = s + mStatusTextString;
+        } else {
+            mStatusTextString = "Not connected to background service\n" + mStatusTextString;
+        }
+        displayStatusText();
+    }
+
 }
