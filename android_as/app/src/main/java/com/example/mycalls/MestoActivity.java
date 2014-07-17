@@ -61,7 +61,9 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             mService = ((MestoLocationService.Binder) service).getService();
             mService.addRunnableCallback(mRunnable);
 
-            mService.getUpnpController().addPeerNotificationsListener(MestoActivity.this);
+            if (mService.isUpnpOn()) {
+                mService.getUpnpController().addPeerNotificationsListener(MestoActivity.this);
+            }
 
             showToggleReportingIfPossible();
             showToggleUpnpIfPossible();

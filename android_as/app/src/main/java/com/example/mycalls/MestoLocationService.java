@@ -43,6 +43,7 @@ public class MestoLocationService extends Service {
     private final Collection<Runnable> mRunnableCallbacks = new HashSet<Runnable>();
     private boolean mIsReporting = true;
     private UpnpController mUpnpController;
+    private String mDeviceIdentifier;
 
     static class Event {
 
@@ -78,8 +79,9 @@ public class MestoLocationService extends Service {
         startMonitoringLocation();
         mExecutor.submit(mServer);
 
-        //mUpnpController = new UpnpController();
-        //mUpnpController.initialize(this);
+        mUpnpController = new UpnpController();
+        mDeviceIdentifier = mUpnpController.getDeviceIdentity().getUdn().getIdentifierString();
+        mUpnpController = null;
     }
 
     @Override
@@ -163,8 +165,7 @@ public class MestoLocationService extends Service {
             mLastLocation = location;
             Log.d(TAG, "location: " + location);
             if (mIsReporting) {
-                sendLocation(location,
-                        mUpnpController.getDeviceIdentity().getUdn().getIdentifierString(), Build.DEVICE);
+                sendLocation(location, mDeviceIdentifier, Build.DEVICE);
             }
         }
 
@@ -399,11 +400,6 @@ public class MestoLocationService extends Service {
     boolean addEventNotificationListener(final EventNotificationListener l) {
         return mEventNotificationListeners.add(l);
     }
-
-    boolean removeEventNotificationListener(final EventNotificationListener l) {
-        return mEventNotificationListeners.remove(l);
-    }
-
 
     private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.US);
 
