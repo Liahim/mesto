@@ -427,10 +427,10 @@ public class MestoLocationService extends Service {
                 Log.i(TAG, "local server processing request from " + mSocket.getInetAddress());
                 final DataInputStream dis = new DataInputStream(mSocket.getInputStream());
 
-                final double latitude = dis.readDouble();
-                final double longitude = dis.readDouble();
                 final String udn = dis.readUTF();
                 final String product = dis.readUTF();
+                final double latitude = dis.readDouble();
+                final double longitude = dis.readDouble();
 
                 for (EventNotificationListener l : mEventNotificationListeners) {
                     l.onEvent(udn, product, latitude, longitude);
