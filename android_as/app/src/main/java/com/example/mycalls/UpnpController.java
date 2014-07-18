@@ -49,50 +49,24 @@ import java.util.logging.Logger;
 public class UpnpController {
     final static String TAG = "MestoUpnp";
 
-    private final DeviceIdentity mIdentity = new DeviceIdentity(UDN.uniqueSystemIdentifier("Mesto"));
+    private final DeviceIdentity mIdentity;
     private UpnpService mUpnpService;
     private Context mApplicationContext;
 
+    public UpnpController() {
+        //not reliable, need to replace with my uuid generated during first launch
+        mIdentity = new DeviceIdentity(UDN.uniqueSystemIdentifier("Mesto"));
+    }
+
     final void initialize(final Context context) {
         mApplicationContext = context.getApplicationContext();
-        enableLogging();
+
+        //enableLogging();
+
         //actually throws a NetworkOnMain but will keep it intentionally
         //so cling uses the mac address instead of localhost for udn
         //generation
         startUpnp();
-    }
-
-    private final void enableLogging() {
-        //LoggingUtil.resetRootHandler(new FixedAndroidHandler());
-
-        /*// Enable this for debug logging:
-        Logger.getLogger("org.teleal.cling.transport.Router").setLevel(Level.FINEST);*/
-
-        // UDP communication
-        //Logger.getLogger("org.teleal.cling.transport.spi.DatagramIO").setLevel(Level.FINEST);
-        //Logger.getLogger("org.teleal.cling.transport.spi.MulticastReceiver").setLevel(Level.FINEST);
-
-        // Discovery
-        /*Logger.getLogger("org.teleal.cling.protocol.ProtocolFactory").setLevel(Level.FINER);
-        Logger.getLogger("org.teleal.cling.protocol.async").setLevel(Level.FINER);
-
-        // Description
-        Logger.getLogger("org.teleal.cling.protocol.ProtocolFactory").setLevel(Level.FINER);
-        Logger.getLogger("org.teleal.cling.protocol.RetrieveRemoteDescriptors").setLevel(Level.FINE);
-        Logger.getLogger("org.teleal.cling.transport.spi.StreamClient").setLevel(Level.FINEST);
-
-        Logger.getLogger("org.teleal.cling.protocol.sync.ReceivingRetrieval").setLevel(Level.FINE);
-        Logger.getLogger("org.teleal.cling.binding.xml.DeviceDescriptorBinder").setLevel(Level.FINE);
-        Logger.getLogger("org.teleal.cling.binding.xml.ServiceDescriptorBinder").setLevel(Level.FINE);
-        Logger.getLogger("org.teleal.cling.transport.spi.SOAPActionProcessor").setLevel(Level.FINEST);
-
-        // Registry
-        Logger.getLogger("org.teleal.cling.registry.Registry").setLevel(Level.FINER);
-        Logger.getLogger("org.teleal.cling.registry.LocalItems").setLevel(Level.FINER);
-        Logger.getLogger("org.teleal.cling.registry.RemoteItems").setLevel(Level.FINER);
-        */
-
-        Logger.getLogger("org.teleal.cling").setLevel(Level.INFO);
     }
 
     final void shutdown() {
@@ -116,10 +90,6 @@ public class UpnpController {
 
     boolean addPeerNotificationsListener(PeerNotifications l) {
         return mPeerNotifications.add(l);
-    }
-
-    boolean removePeerNotificationsListener(PeerNotifications l) {
-        return mPeerNotifications.remove(l);
     }
 
     private final RegistryListener mRegistryListener = new RegistryListener() {
@@ -305,4 +275,37 @@ public class UpnpController {
             }
         };
     }
+
+    private final void enableLogging() {
+        LoggingUtil.resetRootHandler(new FixedAndroidHandler());
+
+        // Enable this for debug logging:
+        Logger.getLogger("org.teleal.cling.transport.Router").setLevel(Level.FINEST);
+
+        // UDP communication
+        Logger.getLogger("org.teleal.cling.transport.spi.DatagramIO").setLevel(Level.FINEST);
+        Logger.getLogger("org.teleal.cling.transport.spi.MulticastReceiver").setLevel(Level.FINEST);
+
+        // Discovery
+        Logger.getLogger("org.teleal.cling.protocol.ProtocolFactory").setLevel(Level.FINER);
+        Logger.getLogger("org.teleal.cling.protocol.async").setLevel(Level.FINER);
+
+        // Description
+        Logger.getLogger("org.teleal.cling.protocol.ProtocolFactory").setLevel(Level.FINER);
+        Logger.getLogger("org.teleal.cling.protocol.RetrieveRemoteDescriptors").setLevel(Level.FINE);
+        Logger.getLogger("org.teleal.cling.transport.spi.StreamClient").setLevel(Level.FINEST);
+
+        Logger.getLogger("org.teleal.cling.protocol.sync.ReceivingRetrieval").setLevel(Level.FINE);
+        Logger.getLogger("org.teleal.cling.binding.xml.DeviceDescriptorBinder").setLevel(Level.FINE);
+        Logger.getLogger("org.teleal.cling.binding.xml.ServiceDescriptorBinder").setLevel(Level.FINE);
+        Logger.getLogger("org.teleal.cling.transport.spi.SOAPActionProcessor").setLevel(Level.FINEST);
+
+        // Registry
+        Logger.getLogger("org.teleal.cling.registry.Registry").setLevel(Level.FINER);
+        Logger.getLogger("org.teleal.cling.registry.LocalItems").setLevel(Level.FINER);
+        Logger.getLogger("org.teleal.cling.registry.RemoteItems").setLevel(Level.FINER);
+
+        Logger.getLogger("org.teleal.cling").setLevel(Level.FINEST);
+    }
+
 }
