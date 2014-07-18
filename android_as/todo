@@ -13,3 +13,5 @@ over the last few hours
 multiple peer endpoints support
 
 protocol ext to pass devid and name, possibly
+
+gesturelistener to speed up scrolling of the event log

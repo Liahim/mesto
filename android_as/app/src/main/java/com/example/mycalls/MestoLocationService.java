@@ -32,10 +32,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class MestoLocationService extends Service {
     private final static String TAG = "MestoService";
     private final static int MAX_LOG_EVENTS = 100;
+    private final static long sTwoMinutesNanos = TimeUnit.MINUTES.toNanos(2);
 
     private final Binder mBinder = new Binder();
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
@@ -44,6 +46,7 @@ public class MestoLocationService extends Service {
     private boolean mIsReporting = true;
     private UpnpController mUpnpController;
     private String mDeviceIdentifier;
+    private Location mLastLocation;
 
     static class Event {
 
@@ -159,12 +162,21 @@ public class MestoLocationService extends Service {
         return mBinder;
     }
 
-    private Location mLastLocation;
     private final LocationListener mLocationListener = new LocationListener() {
         public void onLocationChanged(final Location location) {
-            mLastLocation = location;
             Log.d(TAG, "location: " + location);
             if (mIsReporting) {
+                if (null != mLastLocation) {
+                    final long timePassed = location.getElapsedRealtimeNanos() - mLastLocation.getElapsedRealtimeNanos();
+                    if (timePassed < sTwoMinutesNanos) {
+                        if (location.getAccuracy() > mLastLocation.getAccuracy()) {
+                            Log.i(TAG, "skip reporting less accurate location");
+                            return;
+                        }
+                    }
+                }
+
+                mLastLocation = location;
                 sendLocation(location, mDeviceIdentifier, Build.DEVICE);
             }
         }
@@ -204,8 +216,7 @@ public class MestoLocationService extends Service {
             l.setLongitude(-121.955094);
             sendLocation(l, "TestDeviceUdn", "TestDevice");*/
 
-            sendLocation(mLastLocation,
-                    mUpnpController.getDeviceIdentity().getUdn().getIdentifierString(), Build.DEVICE);
+            sendLocation(mLastLocation, mDeviceIdentifier, Build.DEVICE);
         } else {
             Log.e(TAG, "no known last location");
         }
