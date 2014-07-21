@@ -24,6 +24,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -35,7 +36,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class MestoLocationService extends Service {
-    private final static String TAG = "MestoService";
+    private final static String TAG = "Mesto";
     private final static int MAX_LOG_EVENTS = 100;
     private final static long sTwoMinutesNanos = TimeUnit.MINUTES.toNanos(2);
 
@@ -46,7 +47,6 @@ public class MestoLocationService extends Service {
     private boolean mIsReporting = true;
     private UpnpController mUpnpController;
     private String mDeviceIdentifier;
-    private Location mLastLocation;
 
     static class Event {
 
@@ -79,7 +79,7 @@ public class MestoLocationService extends Service {
 
         persistEvent(registerEvent(Event.Type.Start));
 
-        startMonitoringLocation();
+        startMonitoringLocation(POLL_NETWORK_AND_GPS_PROVIDERS);
         mExecutor.submit(mServer);
 
         mUpnpController = new UpnpController();
@@ -166,17 +166,17 @@ public class MestoLocationService extends Service {
         public void onLocationChanged(final Location location) {
             Log.d(TAG, "location: " + location);
             if (mIsReporting) {
-                if (null != mLastLocation) {
-                    final long timePassed = location.getElapsedRealtimeNanos() - mLastLocation.getElapsedRealtimeNanos();
+                final Location l = getLastLocation();
+                if (null != l) {
+                    final long timePassed = location.getElapsedRealtimeNanos() - l.getElapsedRealtimeNanos();
                     if (timePassed < sTwoMinutesNanos) {
-                        if (location.getAccuracy() > mLastLocation.getAccuracy()) {
+                        if (location.getAccuracy() > l.getAccuracy()) {
                             Log.i(TAG, "skip reporting less accurate location");
                             return;
                         }
                     }
                 }
 
-                mLastLocation = location;
                 sendLocation(location, mDeviceIdentifier, Build.DEVICE);
             }
         }
@@ -191,15 +191,18 @@ public class MestoLocationService extends Service {
         }
     };
 
-    private final void startMonitoringLocation() {
+    private boolean mPollingGpsProvider;
+
+    private final void startMonitoringLocation(boolean onlyNetworkProvider) {
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 60 * 1000, 50, mLocationListener);
             Log.d(TAG, "network_provider selected");
         }
 
-        if (locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
+        if (!onlyNetworkProvider && locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 60 * 1000, 50, mLocationListener);
+            mPollingGpsProvider = true;
             Log.d(TAG, "gps_provider selected");
         }
     }
@@ -207,16 +210,18 @@ public class MestoLocationService extends Service {
     private final void stopMonitoringLocation() {
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         locationManager.removeUpdates(mLocationListener);
+        mPollingGpsProvider = false;
     }
 
     public void sendLocation() {
-        if (null != mLastLocation) {
+        final Location l = getLastLocation();
+        if (null != l) {
             /*final Location l = new Location(mLastLocation);
             l.setLatitude(37.390017);
             l.setLongitude(-121.955094);
             sendLocation(l, "TestDeviceUdn", "TestDevice");*/
 
-            sendLocation(mLastLocation, mDeviceIdentifier, Build.DEVICE);
+            sendLocation(l, mDeviceIdentifier, Build.DEVICE);
         } else {
             Log.e(TAG, "no known last location");
         }
@@ -262,7 +267,7 @@ public class MestoLocationService extends Service {
     void startReporting() {
         Log.i(TAG, "start reporting requested");
         mIsReporting = true;
-        startMonitoringLocation();
+        startMonitoringLocation(POLL_NETWORK_AND_GPS_PROVIDERS);
     }
 
     Collection<Event> getLogEvents() {
@@ -271,7 +276,42 @@ public class MestoLocationService extends Service {
         }
     }
 
+    private static final int DISTANCE_THRESHOLD = 100;    //meters
+    private static final int MAX_PREVIOUS_LOCATIONS = 5;
+    private ArrayList<Location> mPreviousLocations = new ArrayList<Location>();
+
+    private boolean detectMovement(final Location location) {
+        for (final Location l : mPreviousLocations) {
+            if (l.distanceTo(location) > DISTANCE_THRESHOLD) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Location getLastLocation() {
+        final Location result;
+        if (mPreviousLocations.size() > 0) {
+            result = mPreviousLocations.get(0);
+        } else {
+            result = null;
+        }
+        return result;
+    }
+
     private void sendLocation(final Location location, final String udn, final String title) {
+        final boolean moving = detectMovement(location);
+        if (!mPollingGpsProvider && moving) {
+            Log.i(TAG, "enabling gps provider; seems to be moving");
+            stopMonitoringLocation();
+            startMonitoringLocation(POLL_NETWORK_AND_GPS_PROVIDERS);
+        } else if (mPollingGpsProvider && !moving) {
+            Log.i(TAG, "switching to network provider only; seems to be stationary");
+            stopMonitoringLocation();
+            startMonitoringLocation(POLL_NETWORK_PROVIDER_ONLY);
+        }
+        rememberLastLocation(location);
+
         final Runnable r = new Runnable() {
             @Override
             public final void run() {
@@ -326,6 +366,13 @@ public class MestoLocationService extends Service {
         } catch (final RejectedExecutionException e) {
             //ignored for now
         }
+    }
+
+    private void rememberLastLocation(final Location location) {
+        if (mPreviousLocations.size() >= MAX_PREVIOUS_LOCATIONS) {
+            mPreviousLocations.remove(mPreviousLocations.size() - 1);
+        }
+        mPreviousLocations.add(0, location);
     }
 
     private final Event registerEvent(final Event.Type type) {
@@ -450,4 +497,7 @@ public class MestoLocationService extends Service {
     UpnpController getUpnpController() {
         return mUpnpController;
     }
+
+    private static final boolean POLL_NETWORK_PROVIDER_ONLY = true;
+    private static final boolean POLL_NETWORK_AND_GPS_PROVIDERS = false;
 }

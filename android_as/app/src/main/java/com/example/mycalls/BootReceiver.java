@@ -8,7 +8,7 @@ import android.util.Log;
 
 public class BootReceiver extends BroadcastReceiver
 {
-    private static final String TAG = "MestoBoot";
+    private static final String TAG = "Mesto";
 
     @Override
     public void onReceive(final Context context, final Intent intent)

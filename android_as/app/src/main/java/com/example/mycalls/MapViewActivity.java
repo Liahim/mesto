@@ -40,7 +40,7 @@ import static com.example.mycalls.MestoLocationService.EventNotificationListener
  * @todo will have to make the server a separate service
  */
 public class MapViewActivity extends Activity {
-    private static final String TAG = "MestoMapView";
+    private static final String TAG = "Mesto";
     private GoogleMap mMap;
     private MestoLocationService mService;
 

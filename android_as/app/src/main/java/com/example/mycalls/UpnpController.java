@@ -47,7 +47,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class UpnpController {
-    final static String TAG = "MestoUpnp";
+    final static String TAG = "Mesto";
 
     private final DeviceIdentity mIdentity;
     private UpnpService mUpnpService;

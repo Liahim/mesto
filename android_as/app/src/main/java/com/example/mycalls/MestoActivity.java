@@ -37,7 +37,7 @@ import java.util.Set;
 
 public final class MestoActivity extends Activity implements UpnpController.PeerNotifications {
 
-    private final static String TAG = "MestoApp";
+    private final static String TAG = "Mesto";
     private MestoLocationService mService;
     private TextView mStatusText;
     private LinearLayout mPeersList;
