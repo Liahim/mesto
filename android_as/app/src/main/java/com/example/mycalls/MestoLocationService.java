@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -36,9 +37,12 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class MestoLocationService extends Service {
+
     private final static String TAG = "Mesto";
+    private static final boolean POLL_NETWORK_PROVIDER_ONLY = true;
+    private static final boolean POLL_NETWORK_AND_GPS_PROVIDERS = false;
     private final static int MAX_LOG_EVENTS = 100;
-    private final static long sTwoMinutesNanos = TimeUnit.MINUTES.toNanos(2);
+    private final static long TWO_MINUTES_IN_NANOS = TimeUnit.MINUTES.toNanos(2);
 
     private final Binder mBinder = new Binder();
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
@@ -47,6 +51,11 @@ public class MestoLocationService extends Service {
     private boolean mIsReporting = true;
     private UpnpController mUpnpController;
     private String mDeviceIdentifier;
+
+    private LocationListener mNetworkListener;
+    private LocationListener mGpsListener;
+    private LocationListener mPassiveListener;
+
 
     static class Event {
 
@@ -79,7 +88,7 @@ public class MestoLocationService extends Service {
 
         persistEvent(registerEvent(Event.Type.Start));
 
-        startMonitoringLocation(POLL_NETWORK_AND_GPS_PROVIDERS);
+        startMonitoringLocation(POLL_NETWORK_PROVIDER_ONLY);
         mExecutor.submit(mServer);
 
         mUpnpController = new UpnpController();
@@ -90,6 +99,7 @@ public class MestoLocationService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        stopMonitoringLocation();
 
         final Runnable r = new Runnable() {
             @Override
@@ -109,6 +119,7 @@ public class MestoLocationService extends Service {
             fis = openFileInput("eventLog");
 
             final long fileSize = fis.getChannel().size();
+            Log.i(TAG, "eventLog file size " + fileSize);
             final long maxSize = MAX_LOG_EVENTS * ((Byte.SIZE + Long.SIZE) / 8);
 
             int entries;
@@ -162,55 +173,51 @@ public class MestoLocationService extends Service {
         return mBinder;
     }
 
-    private final LocationListener mLocationListener = new LocationListener() {
-        public void onLocationChanged(final Location location) {
-            Log.d(TAG, "location: " + location);
-            if (mIsReporting) {
-                final Location l = getLastLocation();
-                if (null != l) {
-                    final long timePassed = location.getElapsedRealtimeNanos() - l.getElapsedRealtimeNanos();
-                    if (timePassed < sTwoMinutesNanos) {
-                        if (location.getAccuracy() > l.getAccuracy()) {
-                            Log.i(TAG, "skip reporting less accurate location");
-                            return;
-                        }
-                    }
-                }
-
-                sendLocation(location, mDeviceIdentifier, Build.DEVICE);
-            }
-        }
-
-        public void onStatusChanged(final String provider, final int status, final Bundle extras) {
-        }
-
-        public void onProviderEnabled(final String provider) {
-        }
-
-        public void onProviderDisabled(final String provider) {
-        }
-    };
-
-    private boolean mPollingGpsProvider;
 
     private final void startMonitoringLocation(boolean onlyNetworkProvider) {
-        final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        if (locationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 60 * 1000, 50, mLocationListener);
+        final LocationManager lm = (LocationManager) this.getSystemService(
+                Context.LOCATION_SERVICE);
+        final List<String> ps = lm.getAllProviders();
+
+        if (ps.contains(LocationManager.NETWORK_PROVIDER)) {
+            mNetworkListener = new MyLocationListener();
+            lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2 * 60 * 1000,
+                    0, mNetworkListener);
             Log.d(TAG, "network_provider selected");
         }
 
-        if (!onlyNetworkProvider && locationManager.getAllProviders().contains(LocationManager.GPS_PROVIDER)) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 60 * 1000, 50, mLocationListener);
-            mPollingGpsProvider = true;
+        if (onlyNetworkProvider && ps.contains(LocationManager.PASSIVE_PROVIDER)) {
+            mPassiveListener = new MyLocationListener();
+            lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 2 * 60 * 1000,
+                    0, mPassiveListener);
+            Log.d(TAG, "passive_provider selected");
+        }
+
+        if (!onlyNetworkProvider && ps.contains(LocationManager.GPS_PROVIDER)) {
+            mGpsListener = new MyLocationListener();
+            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2 * 60 * 1000,
+                    0, mGpsListener);
             Log.d(TAG, "gps_provider selected");
         }
     }
 
     private final void stopMonitoringLocation() {
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        locationManager.removeUpdates(mLocationListener);
-        mPollingGpsProvider = false;
+        if (null != mGpsListener) {
+            Log.d(TAG, "about to stop listening to gps_provider");
+            locationManager.removeUpdates(mGpsListener);
+            mGpsListener = null;
+        }
+        if (null != mPassiveListener) {
+            Log.d(TAG, "about to stop listening to passive_provider");
+            locationManager.removeUpdates(mPassiveListener);
+            mPassiveListener = null;
+        }
+        if (null != mNetworkListener) {
+            Log.d(TAG, "about to stop listening to network_provider");
+            locationManager.removeUpdates(mNetworkListener);
+            mNetworkListener = null;
+        }
     }
 
     public void sendLocation() {
@@ -301,29 +308,29 @@ public class MestoLocationService extends Service {
 
     private void sendLocation(final Location location, final String udn, final String title) {
         final boolean moving = detectMovement(location);
-        if (!mPollingGpsProvider && moving) {
+        if (null == mGpsListener && moving) {
             Log.i(TAG, "enabling gps provider; seems to be moving");
             stopMonitoringLocation();
             startMonitoringLocation(POLL_NETWORK_AND_GPS_PROVIDERS);
-        } else if (mPollingGpsProvider && !moving) {
+        } else if (null != mGpsListener && !moving) {
             Log.i(TAG, "switching to network provider only; seems to be stationary");
             stopMonitoringLocation();
             startMonitoringLocation(POLL_NETWORK_PROVIDER_ONLY);
         }
         rememberLastLocation(location);
 
-        final Runnable r = new Runnable() {
+        final Runnable updateRunnable = new Runnable() {
             @Override
             public final void run() {
                 final Set<String> servers = Utilities.loadEndPoints(MestoLocationService.this);
-                for (final String s : servers) {
-                    final Runnable rr = new Runnable() {
+                for (final String server : servers) {
+                    final Runnable peerRunnable = new Runnable() {
                         @Override
                         public final void run() {
                             boolean successful = false;
                             for (int i = 0; i < 3; ++i) {
                                 try {
-                                    final URI uri = new URI("tcp://" + s);
+                                    final URI uri = new URI("tcp://" + server);
                                     final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
                                     final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
@@ -339,11 +346,11 @@ public class MestoLocationService extends Service {
                                     s.close();
 
                                     successful = true;
-                                    Log.i(TAG, "peer " + s + " updated");
+                                    Log.i(TAG, "updated: " + server);
                                     break;
                                 } catch (final Exception e) {
-                                    Log.e(TAG, "error while sending update to server; exc: " + e);
-                                    SystemClock.sleep(3000);
+                                    Log.e(TAG, "update error: " + server);
+                                    SystemClock.sleep(3000*i);
                                 }
                             }
 
@@ -356,13 +363,13 @@ public class MestoLocationService extends Service {
                         }
                     };
 
-                    mExecutor.execute(rr);
+                    mExecutor.execute(peerRunnable);
                 }
             }
         };
 
         try {
-            mExecutor.execute(r);
+            mExecutor.execute(updateRunnable);
         } catch (final RejectedExecutionException e) {
             //ignored for now
         }
@@ -438,7 +445,7 @@ public class MestoLocationService extends Service {
             try {
                 final ServerSocket serverSocket = new ServerSocket(50001);
                 while (true) {
-                    Log.i(TAG, "local server running at port 50001");
+                    Log.i(TAG, "local server at port 50001");
                     //@todo make it cancelable
                     final Socket socket = serverSocket.accept();
                     mExecutor.submit(new SocketRunnable(socket));
@@ -458,8 +465,6 @@ public class MestoLocationService extends Service {
     boolean addEventNotificationListener(final EventNotificationListener l) {
         return mEventNotificationListeners.add(l);
     }
-
-    private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss z", Locale.US);
 
     private final class SocketRunnable implements Runnable {
         private final Socket mSocket;
@@ -494,10 +499,39 @@ public class MestoLocationService extends Service {
         }
     }
 
+    private final class MyLocationListener implements LocationListener {
+        public void onLocationChanged(final Location l) {
+            Log.d(TAG, "location: " + l);
+            if (mIsReporting) {
+                final Location ll = getLastLocation();
+                if (null != ll) {
+                    final long timePassed = l.getElapsedRealtimeNanos() - ll.getElapsedRealtimeNanos();
+                    if (l.getAccuracy() >= ll.getAccuracy() && ll.distanceTo(l) < 50 && timePassed < TWO_MINUTES_IN_NANOS) {
+                        Log.i(TAG, "skip reporting less accurate location");
+                        return;
+                    }
+                }
+
+                sendLocation(l, mDeviceIdentifier, Build.DEVICE);
+            }
+        }
+
+        public void onStatusChanged(final String provider, final int status, final Bundle extras) {
+            Log.d(TAG, "status changed: " + provider + ", " + status);
+        }
+
+        public void onProviderEnabled(final String provider) {
+            Log.d(TAG, "provider enabled: " + provider);
+        }
+
+        public void onProviderDisabled(final String provider) {
+            //network might be disabled; need fallback options if gps or netw are unavailable
+            Log.d(TAG, "provider disabled: " + provider);
+        }
+    }
+
+
     UpnpController getUpnpController() {
         return mUpnpController;
     }
-
-    private static final boolean POLL_NETWORK_PROVIDER_ONLY = true;
-    private static final boolean POLL_NETWORK_AND_GPS_PROVIDERS = false;
 }
