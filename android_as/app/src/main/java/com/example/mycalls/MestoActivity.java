@@ -354,6 +354,8 @@ public final class MestoActivity extends Activity implements UpnpController.Peer
             }
         };
         runOnUiThread(r);
+
+        PeerRegistry.get().addPeer(new PeerRegistry.PeerDescriptor());
     }
 
     private void savePeer(final AbstractList<String> info, final String identifier, final TextView tv) {
