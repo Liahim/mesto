@@ -181,14 +181,14 @@ public class MestoLocationService extends Service {
 
         if (ps.contains(LocationManager.NETWORK_PROVIDER)) {
             mNetworkListener = new MyLocationListener();
-            lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 2 * 60 * 1000,
+            lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5 * 60 * 1000,
                     0, mNetworkListener);
             Log.d(TAG, "network_provider selected");
         }
 
         if (onlyNetworkProvider && ps.contains(LocationManager.PASSIVE_PROVIDER)) {
             mPassiveListener = new MyLocationListener();
-            lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 2 * 60 * 1000,
+            lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 5 * 60 * 1000,
                     0, mPassiveListener);
             Log.d(TAG, "passive_provider selected");
         }
@@ -350,7 +350,7 @@ public class MestoLocationService extends Service {
                                     break;
                                 } catch (final Exception e) {
                                     Log.e(TAG, "update error: " + server);
-                                    SystemClock.sleep(3000*i);
+                                    SystemClock.sleep(3000*(1+i));
                                 }
                             }
 
