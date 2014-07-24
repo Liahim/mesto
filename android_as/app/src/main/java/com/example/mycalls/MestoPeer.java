@@ -14,6 +14,7 @@ import org.teleal.cling.model.types.csv.CSV;
 import org.teleal.cling.model.types.csv.CSVString;
 
 import java.beans.PropertyChangeSupport;
+import java.util.List;
 
 @UpnpService(
         serviceId = @UpnpServiceId("MestoPeer"),
@@ -54,6 +55,7 @@ public class MestoPeer {
         return authed;
     }
 
+    //format: name,
     @UpnpAction(out = @UpnpOutputArgument(name = "Mesto"))
     public CSV<String> getMesto() {
         if (null == mesto) {
@@ -64,8 +66,8 @@ public class MestoPeer {
 
         mesto.add(Build.DEVICE);
 
-        final String me = Utilities.getIPAddress(true) + ":50001";
-        mesto.add(me);
+        final List<String> ss = PeerRegistry.get().exportOwnEndpoints();
+        mesto.addAll(ss);
 
         return mesto;
     }

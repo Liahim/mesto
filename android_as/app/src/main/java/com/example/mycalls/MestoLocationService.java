@@ -38,7 +38,7 @@ public class MestoLocationService extends Service {
 
     private final static String TAG = "Mesto";
     private static final boolean USE_NETWORK_AND_FUSED_PROVIDERS = true;
-    private static final boolean USE_NETWORK_AND_GPS_PROVIDERS = false;
+    private static final boolean USE_GPS_PROVIDER = false;
     private final static int MAX_LOG_EVENTS = 100;
     private final static long TWO_MINUTES_IN_NANOS = TimeUnit.MINUTES.toNanos(2);
 
@@ -172,30 +172,32 @@ public class MestoLocationService extends Service {
     }
 
 
-    private final void startMonitoring(boolean onlyNetworkProvider) {
+    private final void startMonitoring(boolean provider) {
         final LocationManager lm = (LocationManager) this.getSystemService(
                 Context.LOCATION_SERVICE);
         final List<String> ps = lm.getAllProviders();
 
-        if (ps.contains(LocationManager.NETWORK_PROVIDER)) {
-            mNetworkListener = new MyLocationListener();
-            lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 15 * 60 * 1000,
-                   200, mNetworkListener);
-            Log.d(TAG, "network_provider selected");
-        }
+        if (USE_NETWORK_AND_FUSED_PROVIDERS == provider) {
+            if (ps.contains(LocationManager.NETWORK_PROVIDER)) {
+                mNetworkListener = new MyLocationListener();
+                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 15 * 60 * 1000,
+                        0, mNetworkListener);
+                Log.d(TAG, "network_provider selected");
+            }
 
-        if (onlyNetworkProvider && ps.contains(LocationManager.PASSIVE_PROVIDER)) {
-            mPassiveListener = new MyLocationListener();
-            lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 5 * 60 * 1000,
-                    0, mPassiveListener);
-            Log.d(TAG, "passive_provider selected");
-        }
-
-        if (!onlyNetworkProvider && ps.contains(LocationManager.GPS_PROVIDER)) {
-            mGpsListener = new MyLocationListener();
-            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2 * 60 * 1000,
-                    0, mGpsListener);
-            Log.d(TAG, "gps_provider selected");
+            if (ps.contains(LocationManager.PASSIVE_PROVIDER)) {
+                mPassiveListener = new MyLocationListener();
+                lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 7 * 60 * 1000,
+                        0, mPassiveListener);
+                Log.d(TAG, "passive_provider selected");
+            }
+        } else if (USE_GPS_PROVIDER == provider) {
+            if (ps.contains(LocationManager.GPS_PROVIDER)) {
+                mGpsListener = new MyLocationListener();
+                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2 * 60 * 1000,
+                        0, mGpsListener);
+                Log.d(TAG, "gps_provider selected");
+            }
         }
     }
 
@@ -273,7 +275,7 @@ public class MestoLocationService extends Service {
     void startReporting() {
         Log.i(TAG, "start reporting requested");
         mIsReporting = true;
-        startMonitoring(USE_NETWORK_AND_GPS_PROVIDERS);
+        startMonitoring(USE_GPS_PROVIDER);
     }
 
     Collection<Event> getLogEvents() {
@@ -313,7 +315,7 @@ public class MestoLocationService extends Service {
         if (null == mGpsListener && moving) {
             Log.i(TAG, "enabling gps provider; seems to be moving");
             stopMonitoring();
-            startMonitoring(USE_NETWORK_AND_GPS_PROVIDERS);
+            startMonitoring(USE_GPS_PROVIDER);
         } else if (null != mGpsListener && !moving) {
             Log.i(TAG, "switching to network provider only; seems to be stationary");
             stopMonitoring();
@@ -352,7 +354,7 @@ public class MestoLocationService extends Service {
                                     break;
                                 } catch (final Exception e) {
                                     Log.e(TAG, "update error: " + server);
-                                    SystemClock.sleep(3000*(1+i));
+                                    SystemClock.sleep(3000 * (1 + i));
                                 }
                             }
 

@@ -1,6 +1,7 @@
 package com.example.mycalls;
 
-import android.util.Log;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * remember peer udn and endpoints here; implement revoke; sqlite
@@ -16,16 +17,11 @@ public class PeerRegistry {
         static PeerRegistry INSTANCE = new PeerRegistry();
     }
 
-    public enum EndpointTypes {
-        EndpointPublic,
-        EndpointPrivate
-    }
-
     public static class Endpoint {
-        public EndpointTypes type;
-        public String ssid;//if applicable
+        public String ssid;
         public String uri;
-        public short[] portRange;
+        public int[] portRange;
+        public boolean external;
     }
 
     public static class PeerDescriptor {
@@ -78,6 +74,7 @@ public class PeerRegistry {
     /**
      * Given the current context (ssid) return endpoints that are deemed to
      * have a chance of being reachable
+     *
      * @param ssid
      * @return
      */
@@ -88,4 +85,38 @@ public class PeerRegistry {
     public static PeerRegistry get() {
         return Holder.INSTANCE;
     }
+
+    private List<Endpoint> mEndpoints = new ArrayList<Endpoint>();
+
+    public void addOwnEndpoint(Endpoint endpoint) {
+        boolean updated = false;
+        for (Endpoint e : mEndpoints) {
+            if (null != e.ssid && e.ssid.equalsIgnoreCase(endpoint.ssid)) {
+                e.uri = endpoint.uri;
+                e.portRange = endpoint.portRange;
+                updated = true;
+                break;
+            }
+        }
+
+        if (!updated) {
+            mEndpoints.add(endpoint);
+        }
+    }
+
+    public List<String> exportOwnEndpoints() {
+        List<String> result = new ArrayList<String>();
+
+        for (Endpoint e : mEndpoints) {
+            result.add(e.uri);
+            result.add(Integer.toString(e.portRange[0]));
+            result.add(Integer.toString(e.portRange[1]));
+            result.add(e.ssid);
+            result.add(Boolean.toString(e.external));
+        }
+
+        return result;
+    }
+
 }
+

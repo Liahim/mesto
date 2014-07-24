@@ -26,6 +26,7 @@ import org.teleal.cling.model.meta.LocalService;
 import org.teleal.cling.model.meta.ManufacturerDetails;
 import org.teleal.cling.model.meta.ModelDetails;
 import org.teleal.cling.model.meta.RemoteDevice;
+import org.teleal.cling.model.meta.RemoteService;
 import org.teleal.cling.model.meta.Service;
 import org.teleal.cling.model.types.DeviceType;
 import org.teleal.cling.model.types.ServiceType;
@@ -33,9 +34,13 @@ import org.teleal.cling.model.types.UDADeviceType;
 import org.teleal.cling.model.types.UDAServiceId;
 import org.teleal.cling.model.types.UDAServiceType;
 import org.teleal.cling.model.types.UDN;
+import org.teleal.cling.model.types.UnsignedIntegerTwoBytes;
 import org.teleal.cling.model.types.csv.CSVString;
 import org.teleal.cling.registry.Registry;
 import org.teleal.cling.registry.RegistryListener;
+import org.teleal.cling.support.igd.callback.GetExternalIP;
+import org.teleal.cling.support.igd.callback.PortMappingAdd;
+import org.teleal.cling.support.model.PortMapping;
 import org.teleal.common.logging.LoggingUtil;
 
 import java.io.IOException;
@@ -62,11 +67,22 @@ public class UpnpController {
         mApplicationContext = context.getApplicationContext();
 
         //enableLogging();
+        registerDefaultEndpoint();
 
         //actually throws a NetworkOnMain but will keep it intentionally
         //so cling uses the mac address instead of localhost for udn
         //generation
         startUpnp();
+    }
+
+    private void registerDefaultEndpoint() {
+        final PeerRegistry.Endpoint e = new PeerRegistry.Endpoint();
+        e.portRange = new int[]{50001, 50001};
+        e.uri = Utilities.getIPAddress(true);
+        e.external = false;
+        final WifiManager wifi = (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
+        e.ssid = wifi.getConnectionInfo().getSSID();
+        PeerRegistry.get().addOwnEndpoint(e);
     }
 
     final void shutdown() {
@@ -106,6 +122,11 @@ public class UpnpController {
         @Override
         public void remoteDeviceAdded(Registry registry, final RemoteDevice device) {
             Log.i(TAG, "remote device added: " + device);
+            RemoteService[] services = device.getServices();
+            for (RemoteService rs : services) {
+                Log.i(TAG, "upnp service: " + rs);
+                registerPortMapping(rs);
+            }
             processDevice(device);
         }
 
@@ -172,6 +193,60 @@ public class UpnpController {
         }
     };
 
+    private void registerPortMapping(final RemoteService rs) {
+        if (rs.getServiceType().equals(new ServiceType("schemas-upnp-org", "WANIPConnection"))) {
+            final PortMapping desiredMapping =
+                    new PortMapping(
+                            50001,
+                            Utilities.getIPAddress(true),
+                            PortMapping.Protocol.TCP,
+                            "Mesto peer port mapping"
+                    );
+            desiredMapping.setExternalPort(new UnsignedIntegerTwoBytes(50051));
+
+            mUpnpService.getControlPoint().execute(new PortMappingAdd(rs, desiredMapping) {
+                @Override
+                public void success(final ActionInvocation invocation) {
+                    Log.i(TAG, "port mapping succeeded");
+                    PeerRegistry.Endpoint endpoint = new PeerRegistry.Endpoint();
+                    endpoint.portRange = new int[]{50051, 50051};
+                    getExternalIpAddress(rs, endpoint);
+                }
+
+                @Override
+                public void failure(final ActionInvocation invocation, final UpnpResponse operation, final String defaultMsg) {
+                    Log.i(TAG, "port mapping failed: " + defaultMsg);
+                }
+            });
+        }
+    }
+
+    private void getExternalIpAddress(final RemoteService service, final PeerRegistry.Endpoint endpoint) {
+        mUpnpService.getControlPoint().execute(
+                new GetExternalIP(service) {
+
+                    @Override
+                    protected void success(String externalIPAddress) {
+                        Log.i(TAG, "getexternalip succeeded");
+
+                        endpoint.uri = externalIPAddress;
+
+                        WifiManager wifi = (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
+                        endpoint.ssid = wifi.getConnectionInfo().getSSID();
+                        endpoint.external = true;
+
+                        PeerRegistry.get().addOwnEndpoint(endpoint);
+                    }
+
+                    @Override
+                    public void failure(ActionInvocation invocation,
+                                        UpnpResponse operation,
+                                        String defaultMsg) {
+                        Log.i(TAG, "getexternalip failed: " + defaultMsg);
+                    }
+                }
+        );
+    }
 
     public final void startUpnp() {
         final WifiManager wifiManager =
@@ -215,16 +290,10 @@ public class UpnpController {
             Log.e(TAG, "addDevice failed", e);
         }
 
-        /*final PortMapping desiredMapping =
-                new PortMapping(
-                        55333,
-                        "192.168.0.123",
-                        PortMapping.Protocol.TCP,
-                        "My Port Mapping");
-        mUpnpService.getRegistry().addListener(new PortMappingListener(desiredMapping));*/
-
         final UDAServiceType udaType = new UDAServiceType(MestoPeer.ID);
         mUpnpService.getControlPoint().search(new UDAServiceTypeHeader(udaType));
+
+        mUpnpService.getControlPoint().search(new UDAServiceTypeHeader(new UDAServiceType("WANIPConnection")));
     }
 
     void setPin(final UDN udn, final String pin) {
