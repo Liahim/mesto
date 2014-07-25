@@ -1,4 +1,4 @@
-package com.example.mycalls;
+package bg.mrm.mesto;
 
 import android.app.Service;
 import android.content.Context;
@@ -34,9 +34,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
-public class MestoLocationService extends Service {
+import bg.mrm.mesto.upnp.UpnpController;
 
-    private final static String TAG = "Mesto";
+import static bg.mrm.mesto.Globals.TAG;
+
+public class MestoLocationService extends Service {
     private static final boolean USE_NETWORK_AND_FUSED_PROVIDERS = true;
     private static final boolean USE_GPS_PROVIDER = false;
     private final static int MAX_LOG_EVENTS = 100;
@@ -48,7 +50,7 @@ public class MestoLocationService extends Service {
     private final Collection<Runnable> mRunnableCallbacks = new HashSet<Runnable>();
     private boolean mIsReporting = true;
     private UpnpController mUpnpController;
-    private String mDeviceIdentifier;
+    private String mDeviceId;
 
     private LocationListener mNetworkListener;
     private LocationListener mGpsListener;
@@ -89,8 +91,8 @@ public class MestoLocationService extends Service {
         startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
         mExecutor.submit(mServer);
 
-        mUpnpController = new UpnpController();
-        mDeviceIdentifier = mUpnpController.getDeviceIdentity().getUdn().getIdentifierString();
+        mUpnpController = new UpnpController(this, mExecutor);
+        mDeviceId = mUpnpController.getOwnUdn();
         mUpnpController = null;
     }
 
@@ -102,7 +104,7 @@ public class MestoLocationService extends Service {
         final Runnable r = new Runnable() {
             @Override
             public void run() {
-                mUpnpController.shutdown();
+                mUpnpController.down();
             }
         };
         mExecutor.submit(r);
@@ -194,11 +196,12 @@ public class MestoLocationService extends Service {
         } else if (USE_GPS_PROVIDER == provider) {
             if (ps.contains(LocationManager.GPS_PROVIDER)) {
                 mGpsListener = new MyLocationListener();
-                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2 * 60 * 1000,
+                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3 * 60 * 1000,
                         0, mGpsListener);
                 Log.d(TAG, "gps_provider selected");
             }
         }
+        //@todo fallback strategies in case gps or network are unavailable
     }
 
     private final void stopMonitoring() {
@@ -229,9 +232,9 @@ public class MestoLocationService extends Service {
             l.setLongitude(-121.955094);
             sendLocation(l, "TestDeviceUdn", "TestDevice");*/
 
-            sendLocation(l, mDeviceIdentifier, Build.DEVICE);
+            sendLocation(l, mDeviceId, Build.DEVICE);
         } else {
-            Log.e(TAG, "no known last location");
+            Log.e(TAG, "no paired last location");
         }
     }
 
@@ -251,7 +254,7 @@ public class MestoLocationService extends Service {
             final Runnable r = new Runnable() {
                 @Override
                 public void run() {
-                    uc.shutdown();
+                    uc.down();
                 }
             };
             mExecutor.submit(r);
@@ -261,8 +264,8 @@ public class MestoLocationService extends Service {
     void startUpnp() {
         Log.i(TAG, "start upnp");
         if (null == mUpnpController) {
-            mUpnpController = new UpnpController();
-            mUpnpController.initialize(this);
+            mUpnpController = new UpnpController(this, mExecutor);
+            mUpnpController.up();
         }
     }
 
@@ -326,15 +329,16 @@ public class MestoLocationService extends Service {
         final Runnable updateRunnable = new Runnable() {
             @Override
             public final void run() {
-                final Set<String> servers = Utilities.loadEndPoints(MestoLocationService.this);
-                for (final String server : servers) {
+                PeerRegistry.Endpoint[] ee = mUpnpController.getRegistry().getUpdateEndpoints();
+
+                for (final PeerRegistry.Endpoint e : ee) {
                     final Runnable peerRunnable = new Runnable() {
                         @Override
                         public final void run() {
                             boolean successful = false;
                             for (int i = 0; i < 3; ++i) {
                                 try {
-                                    final URI uri = new URI("tcp://" + server);
+                                    final URI uri = new URI("tcp://" + e.uri);
                                     final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
 
                                     final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
@@ -350,10 +354,10 @@ public class MestoLocationService extends Service {
                                     s.close();
 
                                     successful = true;
-                                    Log.i(TAG, "updated: " + server);
+                                    Log.i(TAG, "updated: " + e.uri);
                                     break;
-                                } catch (final Exception e) {
-                                    Log.e(TAG, "update error: " + server);
+                                } catch (final Exception exc) {
+                                    Log.e(TAG, "update error: " + e.uri);
                                     SystemClock.sleep(3000 * (1 + i));
                                 }
                             }
@@ -516,7 +520,7 @@ public class MestoLocationService extends Service {
                     }
                 }
 
-                sendLocation(l, mDeviceIdentifier, Build.DEVICE);
+                sendLocation(l, mDeviceId, Build.DEVICE);
             }
         }
 
@@ -537,5 +541,9 @@ public class MestoLocationService extends Service {
 
     UpnpController getUpnpController() {
         return mUpnpController;
+    }
+
+    public PeerRegistry getPeerRegistry() {
+        return mUpnpController.getRegistry();
     }
 }

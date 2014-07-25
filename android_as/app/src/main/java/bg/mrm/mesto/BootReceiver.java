@@ -1,15 +1,15 @@
 
-package com.example.mycalls;
+package bg.mrm.mesto;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import static bg.mrm.mesto.Globals.TAG;
+
 public class BootReceiver extends BroadcastReceiver
 {
-    private static final String TAG = "Mesto";
-
     @Override
     public void onReceive(final Context context, final Intent intent)
     {

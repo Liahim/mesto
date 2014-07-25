@@ -1,4 +1,4 @@
-package com.example.mycalls;
+package bg.mrm.mesto.upnp;
 
 import android.os.Build;
 import android.util.Log;
@@ -16,6 +16,8 @@ import org.teleal.cling.model.types.csv.CSVString;
 import java.beans.PropertyChangeSupport;
 import java.util.List;
 
+import static bg.mrm.mesto.Globals.TAG;
+
 @UpnpService(
         serviceId = @UpnpServiceId("MestoPeer"),
         serviceType = @UpnpServiceType(value = "MestoPeer", version = 1)
@@ -31,7 +33,7 @@ public class MestoPeer {
 
     public MestoPeer() {
         super();
-        Log.i(UpnpController.TAG, "MestoPeer created");
+        Log.i(TAG, "MestoPeer created");
     }
 
     @UpnpStateVariable()
@@ -46,7 +48,7 @@ public class MestoPeer {
     @UpnpAction
     public void setPin(@UpnpInputArgument(name = "Pin") final String pin) {
         this.pin = pin;
-        Log.i(UpnpController.TAG, "pin set to " + this.pin);
+        Log.i(TAG, "pin set to " + this.pin);
         mChangeSupport.firePropertyChange("Pin", this.pin, pin);
     }
 
@@ -66,7 +68,7 @@ public class MestoPeer {
 
         mesto.add(Build.DEVICE);
 
-        final List<String> ss = PeerRegistry.get().exportOwnEndpoints();
+        final List<String> ss = UpnpPeerRegistry.get().exportOwnEndpoints();
         mesto.addAll(ss);
 
         return mesto;

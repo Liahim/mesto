@@ -1,4 +1,4 @@
-package com.example.mycalls;
+package bg.mrm.mesto;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -34,13 +34,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import static com.example.mycalls.MestoLocationService.EventNotificationListener;
+import static bg.mrm.mesto.Globals.TAG;
+import static bg.mrm.mesto.MestoLocationService.EventNotificationListener;
 
 /**
  * @todo will have to make the server a separate service
  */
 public class MapViewActivity extends Activity {
-    private static final String TAG = "Mesto";
     private GoogleMap mMap;
     private MestoLocationService mService;
 
@@ -118,7 +118,7 @@ public class MapViewActivity extends Activity {
                     final List<Address> addresses = geocoder.getFromLocationName(places[idx], 1);
 
                     if (addresses.size() > 0) {
-                        final Set<String> uris = Utilities.loadEndPoints(MapViewActivity.this);
+                        /*final Set<String> uris = Utilities.loadEndPoints(MapViewActivity.this);
                         if (null != uris) {
                             final URI uri = new URI("tcp://" + uris);
                             final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
@@ -134,7 +134,7 @@ public class MapViewActivity extends Activity {
                             } finally {
                                 s.close();
                             }
-                        }
+                        }*/
                     }
 
                 } catch (final Exception e) {

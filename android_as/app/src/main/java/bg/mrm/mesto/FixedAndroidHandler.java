@@ -1,4 +1,4 @@
-package com.example.mycalls;
+package bg.mrm.mesto;
 
 import android.util.Log;
 
@@ -37,7 +37,7 @@ public class FixedAndroidHandler extends Handler {
      * Constructs a new instance of the Android log handler.
      */
     public FixedAndroidHandler() {
-        setFormatter(com.example.mycalls.FixedAndroidHandler.THE_FORMATTER);
+        setFormatter(bg.mrm.mesto.FixedAndroidHandler.THE_FORMATTER);
     }
 
     @Override

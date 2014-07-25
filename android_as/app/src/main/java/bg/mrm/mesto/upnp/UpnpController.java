@@ -1,4 +1,4 @@
-package com.example.mycalls;
+package bg.mrm.mesto.upnp;
 
 import android.content.Context;
 import android.net.wifi.WifiManager;
@@ -44,28 +44,31 @@ import org.teleal.cling.support.model.PortMapping;
 import org.teleal.common.logging.LoggingUtil;
 
 import java.io.IOException;
-import java.util.AbstractList;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class UpnpController {
-    final static String TAG = "Mesto";
+import bg.mrm.mesto.FixedAndroidHandler;
+import bg.mrm.mesto.PeerRegistry;
+import bg.mrm.mesto.Utilities;
 
+import static bg.mrm.mesto.Globals.TAG;
+
+public class UpnpController {
     private final DeviceIdentity mIdentity;
     private UpnpService mUpnpService;
     private Context mApplicationContext;
 
-    public UpnpController() {
+    public UpnpController(final Context context, ExecutorService executor) {
         //not reliable, need to replace with my uuid generated during first launch
         mIdentity = new DeviceIdentity(UDN.uniqueSystemIdentifier("Mesto"));
+
+        mApplicationContext = context.getApplicationContext();
+        UpnpPeerRegistry.get().initialize(
+                mApplicationContext, executor, mIdentity.getUdn().getIdentifierString());
     }
 
-    final void initialize(final Context context) {
-        mApplicationContext = context.getApplicationContext();
-
+    public final void up() {
         //enableLogging();
         registerDefaultEndpoint();
 
@@ -76,39 +79,30 @@ public class UpnpController {
     }
 
     private void registerDefaultEndpoint() {
-        final PeerRegistry.Endpoint e = new PeerRegistry.Endpoint();
-        e.portRange = new int[]{50001, 50001};
-        e.uri = Utilities.getIPAddress(true);
-        e.external = false;
         final WifiManager wifi = (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
-        e.ssid = wifi.getConnectionInfo().getSSID();
-        PeerRegistry.get().addOwnEndpoint(e);
+
+        PeerRegistry.Endpoint[] e=new PeerRegistry.Endpoint[1];
+        e[0] = new PeerRegistry.Endpoint(
+                wifi.getConnectionInfo().getSSID(),
+                Utilities.getIPAddress(true),
+                new int[]{50001, 50001},
+                false
+        );
+
+        UpnpPeerRegistry.get().savePeer(mIdentity.getUdn().getIdentifierString(), e);
     }
 
-    final void shutdown() {
+    public final void down() {
         if (null != mUpnpService) {
             mUpnpService.shutdown();
         }
     }
 
-    final DeviceIdentity getDeviceIdentity() {
-        return mIdentity;
+    public final String getOwnUdn() {
+        return mIdentity.getUdn().getIdentifierString();
     }
 
-    interface PeerNotifications {
-        void onAdded(UDN udn, AbstractList<String> mesto);
-
-        void onRemoved(UDN udn);
-    }
-
-    private final Set<PeerNotifications> mPeerNotifications
-            = Collections.newSetFromMap(new ConcurrentHashMap<PeerNotifications, Boolean>());
-
-    boolean addPeerNotificationsListener(PeerNotifications l) {
-        return mPeerNotifications.add(l);
-    }
-
-    private final RegistryListener mRegistryListener = new RegistryListener() {
+    private final RegistryListener mClingRegistryListener = new RegistryListener() {
         @Override
         public void remoteDeviceDiscoveryStarted(Registry registry, RemoteDevice device) {
             Log.i(TAG, "remote discover started: " + device);
@@ -139,9 +133,7 @@ public class UpnpController {
         @Override
         public void remoteDeviceRemoved(Registry registry, RemoteDevice device) {
             Log.i(TAG, "remote device removed");
-            for (final PeerNotifications l : mPeerNotifications) {
-                l.onRemoved(device.getIdentity().getUdn());//@todo
-            }
+            UpnpPeerRegistry.get().onPeerGone(device.getIdentity().getUdn());//@todo
         }
 
         @Override
@@ -176,9 +168,8 @@ public class UpnpController {
                             = new CSVString((String) invocation.getOutput("Mesto").getValue());
                     Log.i(TAG, "remote device name retrieved: " + mesto.get(0));
 
-                    for (final PeerNotifications l : mPeerNotifications) {
-                        l.onAdded(device.getIdentity().getUdn(), mesto);
-                    }
+                    PeerRegistry.Endpoint[] endpoints = UpnpUtilities.importEndpoints(mesto, 1);
+                    UpnpPeerRegistry.get().onPeerDiscovered(device.getIdentity().getUdn(), endpoints);
                 }
 
                 @Override
@@ -208,9 +199,9 @@ public class UpnpController {
                 @Override
                 public void success(final ActionInvocation invocation) {
                     Log.i(TAG, "port mapping succeeded");
-                    PeerRegistry.Endpoint endpoint = new PeerRegistry.Endpoint();
-                    endpoint.portRange = new int[]{50051, 50051};
-                    getExternalIpAddress(rs, endpoint);
+                    PeerRegistry.Endpoint.Builder b = new PeerRegistry.Endpoint.Builder();
+                    b.setPortRange(new int[]{50051, 50051});
+                    getExternalIpAddress(rs, b);
                 }
 
                 @Override
@@ -221,7 +212,7 @@ public class UpnpController {
         }
     }
 
-    private void getExternalIpAddress(final RemoteService service, final PeerRegistry.Endpoint endpoint) {
+    private void getExternalIpAddress(final RemoteService service, final PeerRegistry.Endpoint.Builder b) {
         mUpnpService.getControlPoint().execute(
                 new GetExternalIP(service) {
 
@@ -229,13 +220,15 @@ public class UpnpController {
                     protected void success(String externalIPAddress) {
                         Log.i(TAG, "getexternalip succeeded");
 
-                        endpoint.uri = externalIPAddress;
-
+                        b.setUri(externalIPAddress);
                         WifiManager wifi = (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
-                        endpoint.ssid = wifi.getConnectionInfo().getSSID();
-                        endpoint.external = true;
+                        b.setSsid(wifi.getConnectionInfo().getSSID());
+                        b.setExternal(true);
 
-                        PeerRegistry.get().addOwnEndpoint(endpoint);
+                        final String udn = service.getDevice().getIdentity().getUdn().getIdentifierString();
+                        PeerRegistry.Endpoint[] ee = new PeerRegistry.Endpoint[1];
+                        ee[0]=b.make();//overwrites other endpoints, needs api changes
+                        UpnpPeerRegistry.get().savePeer(udn, ee);
                     }
 
                     @Override
@@ -251,7 +244,7 @@ public class UpnpController {
     public final void startUpnp() {
         final WifiManager wifiManager =
                 (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
-        mUpnpService = new UpnpServiceImpl(createConfiguration(wifiManager), mRegistryListener);
+        mUpnpService = new UpnpServiceImpl(createConfiguration(wifiManager), mClingRegistryListener);
 
         try {
             final LocalDevice device = createDevice();
@@ -343,6 +336,10 @@ public class UpnpController {
                 return new ServiceType[]{new UDAServiceType(MestoPeer.ID)};
             }
         };
+    }
+
+    public PeerRegistry getRegistry() {
+        return UpnpPeerRegistry.get();
     }
 
     private final void enableLogging() {
