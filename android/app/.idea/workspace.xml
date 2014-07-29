@@ -72,7 +72,7 @@
         <entry>
           <key>
             <ExternalProjectPojo>
-              <option name="name" value="android_as" />
+              <option name="name" value="android" />
               <option name="path" value="$PROJECT_DIR$" />
             </ExternalProjectPojo>
           </key>
@@ -83,7 +83,7 @@
                 <option name="path" value="$PROJECT_DIR$" />
               </ExternalProjectPojo>
               <ExternalProjectPojo>
-                <option name="name" value="android_as" />
+                <option name="name" value="android" />
                 <option name="path" value="$PROJECT_DIR$/.." />
               </ExternalProjectPojo>
             </list>

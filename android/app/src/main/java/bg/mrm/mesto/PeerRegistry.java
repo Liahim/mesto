@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import bg.mrm.mesto.upnp.UpnpUtilities;
+
 /**
  * remember peer udn and endpoints here; implement revoke; sqlite
  * <p/>
@@ -174,7 +176,7 @@ public abstract class PeerRegistry {
         }
         List<Endpoint> ee = new ArrayList<Endpoint>();
         for (PeerDescriptor pd : mPeers) {
-            if(filter(pd)) {
+            if (filter(pd)) {
                 ee.addAll(Arrays.asList(pd.endPoints));
             }
         }
@@ -182,7 +184,7 @@ public abstract class PeerRegistry {
         return Collections.unmodifiableCollection(ee);
     }
 
-    protected boolean filter(PeerDescriptor pd){
+    protected boolean filter(PeerDescriptor pd) {
         return true;
     }
 
@@ -224,5 +226,8 @@ public abstract class PeerRegistry {
         mFuture = executor.submit(r);
     }
 
+    public List<String> exportOwnEndpoints() {
+        return null;
+    }
 }
 

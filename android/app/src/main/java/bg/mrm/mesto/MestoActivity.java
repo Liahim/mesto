@@ -273,9 +273,9 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
         final AutoCompleteTextView serverAddress
                 = (AutoCompleteTextView) view.findViewById(R.id.serverAddress);
 
-        final Collection<PeerRegistry.Endpoint> ee = mService.getPeerRegistry().getUpdateEndpoints();
-        for (final PeerRegistry.Endpoint e : ee) {
-            serverAddress.setText(e.uri + '\n');
+        final List<String> ee = mService.getPeerRegistry().exportOwnEndpoints();
+        for (final String s : ee) {
+            serverAddress.setText(s + '\n');
         }
 
         final TextView tv = (TextView) view.findViewById(R.id.localServer);
