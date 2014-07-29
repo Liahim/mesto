@@ -1,11 +1,15 @@
 package bg.mrm.mesto;
 
 import android.content.Context;
+import android.util.Log;
 
-import org.teleal.cling.model.types.UDN;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 /**
  * remember peer udn and endpoints here; implement revoke; sqlite
@@ -62,14 +66,15 @@ public abstract class PeerRegistry {
 
     public static class PeerDescriptor {
         public String udn;
+        public String title;
         public Endpoint[] endPoints;
         public boolean paired;
     }
 
     interface Notifications {
-        void onPeerDiscovered(UDN udn, String title, boolean known);
+        void onPeerDiscovered(String udn, String title, boolean known);
 
-        void onPeerGone(UDN udn);
+        void onPeerGone(String udn);
     }
 
     private Notifications mListener;
@@ -78,36 +83,40 @@ public abstract class PeerRegistry {
         mListener = l;
     }
 
-    List<PeerDescriptor> mPeers;
+    private final List<PeerDescriptor> mPeers = new ArrayList<PeerDescriptor>();
 
 
     //save peer; return true if it was actually an update
-    public boolean savePeer(String udn, Endpoint[] endpoints) {
-
+    public boolean savePeer(String udn, String title, Endpoint[] endpoints) {
         PeerDescriptor pd = findPeer(udn);
-        if (null == pd) {
+        boolean update = null != pd;
+        if (!update) {
             pd = new PeerDescriptor();
             pd.endPoints = endpoints;
             pd.udn = udn;
+            pd.title = title;
 
             mPeers.add(pd);
         } else {
             pd.endPoints = endpoints;
         }
 
-        return false;
+        if (null != mListener) {
+            mListener.onPeerDiscovered(udn, title, pd.paired);
+        }
+
+        return update;
     }
 
-    public boolean commitPeer(String udn) {
-
+    public void commitPeer(String udn) {
         PeerDescriptor pd = findPeer(udn);
         if (null != pd) {
-            Database.insertInPeersAsync(mDbHelper, udn, null, null);
-            pd.paired = true;
-        } else {
-            pd = Database.updatePeer(mDbHelper, udn, -1);   //@todo
+            if (!pd.paired) {
+                pd.paired = true;
+            }
+
+            Database.insertInPeersAsync(mDbHelper, udn, pd);
         }
-        return false;
     }
 
 
@@ -120,6 +129,11 @@ public abstract class PeerRegistry {
      * @return
      */
     public PeerDescriptor findPeer(String udn) {
+        for (PeerDescriptor pd : mPeers) {
+            if (pd.udn.equalsIgnoreCase(udn)) {
+                return pd;
+            }
+        }
         return null;
     }
 
@@ -144,23 +158,32 @@ public abstract class PeerRegistry {
     }
 
     /**
-     * Given the current context (ssid) return endpoints that are deemed to
-     * have a chance of being reachable
-     *
-     * @param ssid
-     * @return
-     */
-    public String[] getEndpoints(String ssid) {
-        return null;
-    }
-
-    /**
      * Retrieve endpoints that might be reachable for updates at
      * this moment and in this context.
+     *
      * @return
      */
-    public Endpoint[] getUpdateEndpoints() {
-        return null;
+    public Collection<Endpoint> getUpdateEndpoints() {
+        if (!mFuture.isDone()) {
+            Log.i(Globals.TAG, "have to wait for the db to be initialized");
+            try {
+                mFuture.get();
+            } catch (Exception e) {
+                Log.e(Globals.TAG, "error while initializing the db", e);
+            }
+        }
+        List<Endpoint> ee = new ArrayList<Endpoint>();
+        for (PeerDescriptor pd : mPeers) {
+            if(filter(pd)) {
+                ee.addAll(Arrays.asList(pd.endPoints));
+            }
+        }
+
+        return Collections.unmodifiableCollection(ee);
+    }
+
+    protected boolean filter(PeerDescriptor pd){
+        return true;
     }
 
 //    private List<Endpoint> mEndpoints = new ArrayList<Endpoint>();
@@ -182,9 +205,23 @@ public abstract class PeerRegistry {
 //    }
 
     private Database.Helper mDbHelper;
+    private Future<?> mFuture;
 
     public void initialize(final Context ctx, final ExecutorService executor) {
         mDbHelper = new Database.Helper(ctx.getApplicationContext(), executor);
+
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                Database.getAllPeers(mDbHelper, new Database.Callback() {
+                    @Override
+                    public void onReadPeer(final PeerDescriptor pd) {
+                        mPeers.add(pd);
+                    }
+                });
+            }
+        };
+        mFuture = executor.submit(r);
     }
 
 }

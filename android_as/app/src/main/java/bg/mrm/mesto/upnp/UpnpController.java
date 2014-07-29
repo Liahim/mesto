@@ -2,6 +2,7 @@ package bg.mrm.mesto.upnp;
 
 import android.content.Context;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.util.Log;
 
 import org.teleal.cling.UpnpService;
@@ -81,7 +82,7 @@ public class UpnpController {
     private void registerDefaultEndpoint() {
         final WifiManager wifi = (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
 
-        PeerRegistry.Endpoint[] e=new PeerRegistry.Endpoint[1];
+        PeerRegistry.Endpoint[] e = new PeerRegistry.Endpoint[1];
         e[0] = new PeerRegistry.Endpoint(
                 wifi.getConnectionInfo().getSSID(),
                 Utilities.getIPAddress(true),
@@ -89,12 +90,17 @@ public class UpnpController {
                 false
         );
 
-        UpnpPeerRegistry.get().savePeer(mIdentity.getUdn().getIdentifierString(), e);
+        UpnpPeerRegistry.get().savePeer(mIdentity.getUdn().getIdentifierString(), Build.MODEL, e);
+    }
+
+    public boolean isUp() {
+        return null != mUpnpService;
     }
 
     public final void down() {
         if (null != mUpnpService) {
             mUpnpService.shutdown();
+            mUpnpService = null;
         }
     }
 
@@ -169,7 +175,7 @@ public class UpnpController {
                     Log.i(TAG, "remote device name retrieved: " + mesto.get(0));
 
                     PeerRegistry.Endpoint[] endpoints = UpnpUtilities.importEndpoints(mesto, 1);
-                    UpnpPeerRegistry.get().onPeerDiscovered(device.getIdentity().getUdn(), endpoints);
+                    UpnpPeerRegistry.get().onPeerDiscovered(device.getIdentity().getUdn(), mesto.get(0), endpoints);
                 }
 
                 @Override
@@ -227,8 +233,8 @@ public class UpnpController {
 
                         final String udn = service.getDevice().getIdentity().getUdn().getIdentifierString();
                         PeerRegistry.Endpoint[] ee = new PeerRegistry.Endpoint[1];
-                        ee[0]=b.make();//overwrites other endpoints, needs api changes
-                        UpnpPeerRegistry.get().savePeer(udn, ee);
+                        ee[0] = b.make();//overwrites other endpoints, needs api changes
+                        UpnpPeerRegistry.get().savePeer(udn, Build.MODEL, ee);
                     }
 
                     @Override
@@ -241,7 +247,7 @@ public class UpnpController {
         );
     }
 
-    public final void startUpnp() {
+    private final void startUpnp() {
         final WifiManager wifiManager =
                 (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
         mUpnpService = new UpnpServiceImpl(createConfiguration(wifiManager), mClingRegistryListener);

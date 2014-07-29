@@ -118,19 +118,19 @@ public class MapViewActivity extends Activity {
                     final List<Address> addresses = geocoder.getFromLocationName(places[idx], 1);
 
                     if (addresses.size() > 0) {
-                        /*final Set<String> uris = Utilities.loadEndPoints(MapViewActivity.this);
+                        /*final set<string> uris = utilities.loadendpoints(mapviewactivity.this);
                         if (null != uris) {
-                            final URI uri = new URI("tcp://" + uris);
-                            final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
+                            final uri uri = new uri("tcp://" + uris);
+                            final socket s = new socket(inetaddress.getbyname(uri.gethost()), uri.getport());
 
                             try {
-                                final ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
-                                final DataOutputStream dos = new DataOutputStream(baos);
+                                final bytearrayoutputstream baos = new bytearrayoutputstream(8);
+                                final dataoutputstream dos = new dataoutputstream(baos);
 
-                                dos.writeDouble(addresses.get(0).getLatitude());
-                                dos.writeDouble(addresses.get(0).getLongitude());
-                                final byte[] bytes = baos.toByteArray();
-                                s.getOutputStream().write(bytes);
+                                dos.writedouble(addresses.get(0).getlatitude());
+                                dos.writedouble(addresses.get(0).getlongitude());
+                                final byte[] bytes = baos.tobytearray();
+                                s.getoutputstream().write(bytes);
                             } finally {
                                 s.close();
                             }

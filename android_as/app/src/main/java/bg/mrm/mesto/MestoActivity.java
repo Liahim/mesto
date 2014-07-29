@@ -22,16 +22,14 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.teleal.cling.model.types.UDN;
-
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 import static bg.mrm.mesto.Globals.TAG;
@@ -275,7 +273,7 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
         final AutoCompleteTextView serverAddress
                 = (AutoCompleteTextView) view.findViewById(R.id.serverAddress);
 
-        final PeerRegistry.Endpoint[] ee=mService.getPeerRegistry().getUpdateEndpoints();
+        final Collection<PeerRegistry.Endpoint> ee = mService.getPeerRegistry().getUpdateEndpoints();
         for (final PeerRegistry.Endpoint e : ee) {
             serverAddress.setText(e.uri + '\n');
         }
@@ -309,44 +307,44 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
     }
 
     @Override
-    public final void onPeerDiscovered(final UDN udn, final String title, final boolean known) {
+    public final void onPeerDiscovered(final String udn, final String title, final boolean known) {
         final Runnable r = new Runnable() {
             @Override
             public void run() {
-                final boolean known = -1 != findPeerView(udn);
-                final String identifier = udn.getIdentifierString();
+                Log.i(TAG, "showing peer " + title + "; " + udn);
 
-                Log.i(TAG, "showing peer " + title + "; " + identifier);
-
-                final LayoutInflater inflater = getLayoutInflater();
-                final TextView tv = (TextView) inflater.inflate(R.layout.list_element_peer, null);
-                tv.setText(title);
-                tv.setTag(R.id.tag_udn, udn);
-
-                PeerRegistry.PeerDescriptor pd=mService.getPeerRegistry().findPeer(identifier);
-                if (pd.paired) {
-                    tv.setTextColor(Color.GREEN);
+                TextView tv = (TextView) findPeerView(udn);
+                if (null == tv) {
+                    final LayoutInflater inflater = getLayoutInflater();
+                    tv = (TextView) inflater.inflate(R.layout.list_element_peer, null);
+                    tv.setTag(R.id.tag_udn, udn);
+                    mPeersList.addView(tv);
                 }
 
-                tv.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
-                        final LayoutInflater inflater = getLayoutInflater();
+                tv.setText(title);
+                if (known) {
+                    tv.setTextColor(Color.GREEN);
+                } else {
+                    final TextView ftv = tv;
+                    tv.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
+                            final LayoutInflater inflater = getLayoutInflater();
 
-                        final View view = inflater.inflate(R.layout.dialog_pin, null);
-                        builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(final DialogInterface dialog, final int id) {
-                                mService.getPeerRegistry().commitPeer(identifier);
-                                tv.setTextColor(Color.GREEN);
-                                Toast.makeText(MestoActivity.this, "Peer registered", Toast.LENGTH_LONG).show();
-                            }
-                        }).setNegativeButton(R.string.button_cancel, null);
-                        builder.create().show();
-                    }
-                });
-                mPeersList.addView(tv);
+                            final View view = inflater.inflate(R.layout.dialog_pin, null);
+                            builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(final DialogInterface dialog, final int id) {
+                                    mService.getPeerRegistry().commitPeer(udn);
+                                    ftv.setTextColor(Color.GREEN);
+                                    Toast.makeText(MestoActivity.this, "Peer registered", Toast.LENGTH_LONG).show();
+                                }
+                            }).setNegativeButton(R.string.button_cancel, null);
+                            builder.create().show();
+                        }
+                    });
+                }
             }
         };
 
@@ -354,25 +352,25 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
     }
 
     @Override
-    public void onPeerGone(final UDN udn) {
+    public void onPeerGone(final String udn) {
         final Runnable r = new Runnable() {
             @Override
             public void run() {
-                final int idx = findPeerView(udn);
-                if (-1 != idx) {
-                    mPeersList.removeViewAt(idx);
+                final View v = findPeerView(udn);
+                if (null != v) {
+                    mPeersList.removeView(v);
                 }
             }
         };
         runOnUiThread(r);
     }
 
-    private final int findPeerView(final UDN udn) {
-        int result = -1;
+    private final View findPeerView(final String udn) {
+        View result = null;
         for (int i = 0; i < mPeersList.getChildCount(); ++i) {
             final View v = mPeersList.getChildAt(i);
             if (udn.equals(v.getTag(R.id.tag_udn))) {
-                result = i;
+                result = v;
                 break;
             }
         }
@@ -415,17 +413,12 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
 
     private final void onMenuDumpPeers() {
         if (null != mService) {
-            //@todo reimplement from scratch
-/*            final Map<String, Utilities.PeerInfo> peers = Utilities.loadAllPeersInfo(this);
-            String s = "";  // to sb, check bcode
-            for (Map.Entry<String, Utilities.PeerInfo> info : peers.entrySet()) {
-                s += "Peer udn: " + info.getKey() + "; title: " + info.getValue().title + '\n';
-                for (final String ss : info.getValue().uris) {
-                    s += "Endpoint: " + ss + '\n';
-                }
+            StringBuilder sb=new StringBuilder();
+            for (PeerRegistry.Endpoint e: mService.getPeerRegistry().getUpdateEndpoints()) {
+                sb.append("peer endpoint: " + e.uri + "; ssid: " + e.ssid + '\n');
             }
 
-            mStatusTextString = s + mStatusTextString;*/
+            mStatusTextString = sb.toString() + mStatusTextString;
         } else {
             mStatusTextString = "Not connected to background service\n" + mStatusTextString;
         }

@@ -93,7 +93,6 @@ public class MestoLocationService extends Service {
 
         mUpnpController = new UpnpController(this, mExecutor);
         mDeviceId = mUpnpController.getOwnUdn();
-        mUpnpController = null;
     }
 
     @Override
@@ -239,7 +238,7 @@ public class MestoLocationService extends Service {
     }
 
     boolean isUpnpOn() {
-        return null != mUpnpController;
+        return mUpnpController.isUp();
     }
 
     boolean isReporting() {
@@ -248,25 +247,19 @@ public class MestoLocationService extends Service {
 
     void stopUpnp() {
         Log.i(TAG, "stop upnp");
-        if (null != mUpnpController) {
-            final UpnpController uc = mUpnpController;
-            mUpnpController = null;
-            final Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    uc.down();
-                }
-            };
-            mExecutor.submit(r);
-        }
+        final UpnpController uc = mUpnpController;
+        final Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                uc.down();
+            }
+        };
+        mExecutor.submit(r);
     }
 
     void startUpnp() {
         Log.i(TAG, "start upnp");
-        if (null == mUpnpController) {
-            mUpnpController = new UpnpController(this, mExecutor);
-            mUpnpController.up();
-        }
+        mUpnpController.up();
     }
 
     void stopReporting() {
@@ -329,7 +322,7 @@ public class MestoLocationService extends Service {
         final Runnable updateRunnable = new Runnable() {
             @Override
             public final void run() {
-                PeerRegistry.Endpoint[] ee = mUpnpController.getRegistry().getUpdateEndpoints();
+                Collection<PeerRegistry.Endpoint> ee = mUpnpController.getRegistry().getUpdateEndpoints();
 
                 for (final PeerRegistry.Endpoint e : ee) {
                     final Runnable peerRunnable = new Runnable() {
@@ -536,11 +529,6 @@ public class MestoLocationService extends Service {
             //network might be disabled; need fallback options if gps or netw are unavailable
             Log.d(TAG, "provider disabled: " + provider);
         }
-    }
-
-
-    UpnpController getUpnpController() {
-        return mUpnpController;
     }
 
     public PeerRegistry getPeerRegistry() {

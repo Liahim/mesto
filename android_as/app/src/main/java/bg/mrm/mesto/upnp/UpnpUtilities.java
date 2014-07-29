@@ -9,15 +9,18 @@ final class UpnpUtilities {
     private static final int COUNT_ENDPOINT_FIELDS = 5;
 
     static List<String> exportEndpoints(final String udn) {
-        List<String> result = new ArrayList<String>();
+        List<String> result = null;
 
         final PeerRegistry.PeerDescriptor pd = UpnpPeerRegistry.get().findPeer(udn);
-        for (PeerRegistry.Endpoint e : pd.endPoints) {
-            result.add(e.uri);
-            result.add(Integer.toString(e.portRange[0]));
-            result.add(Integer.toString(e.portRange[1]));
-            result.add(e.ssid);
-            result.add(Boolean.toString(e.external));
+        if(null!=pd) {
+            result=new ArrayList<String>();
+            for (PeerRegistry.Endpoint e : pd.endPoints) {
+                result.add(e.uri);
+                result.add(Integer.toString(e.portRange[0]));
+                result.add(Integer.toString(e.portRange[1]));
+                result.add(e.ssid);
+                result.add(Boolean.toString(e.external));
+            }
         }
 
         return result;
