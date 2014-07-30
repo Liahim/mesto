@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <syslog.h>
 
 #include <sys/wait.h>
 #include <unistd.h>
@@ -25,8 +26,12 @@
 void doprocessing(int sock);
 
 static double* glob_var;
+static const char* SYSLOG_TAG="Mesto";
 
 int main(int argc, char *argv[]) {
+	openlog(SYSLOG_TAG,LOG_PERROR,0);
+	syslog(LOG_INFO, "starting up");
+
 	struct sigaction sigchld_action = {
 	  .sa_handler = SIG_DFL,
 	  .sa_flags = SA_NOCLDWAIT
@@ -36,7 +41,7 @@ int main(int argc, char *argv[]) {
 	glob_var = mmap(NULL, sizeof *glob_var, PROT_READ | PROT_WRITE,
 			MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if (MAP_FAILED == glob_var) {
-		perror("mmap failed");
+		syslog(LOG_ERR, "mmap failed");
 		exit(1);
 	}
 
@@ -47,7 +52,7 @@ int main(int argc, char *argv[]) {
 	/* First call to socket() function */
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0) {
-		perror("ERROR opening socket");
+		syslog(LOG_ERR, "ERROR opening socket");
 		exit(1);
 	}
 	/* Initialize socket structure */
@@ -59,7 +64,7 @@ int main(int argc, char *argv[]) {
 
 	/* Now bind the host address using bind() call.*/
 	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-		perror("ERROR on binding");
+		syslog(LOG_ERR, "ERROR on binding");
 		exit(1);
 	}
 	/* Now start listening for the clients, here
@@ -71,21 +76,22 @@ int main(int argc, char *argv[]) {
 	while (1) {
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 		if (newsockfd < 0) {
-			perror("ERROR on accept");
+			syslog(LOG_ERR, "ERROR on accept");
 			exit(1);
 		}
 		/* Create child process */
 		int pid = fork();
 		if (pid < 0) {
-			perror("ERROR on fork");
+			syslog(LOG_ERR, "ERROR on fork");
 			exit(1);
 		}
 		if (pid == 0) {
 			/* This is the client process */
 			close(sockfd);
 			doprocessing(newsockfd);
+			close(newsockfd);
 			exit(0);
-		} else {
+		}else{
 			close(newsockfd);
 		}
 
@@ -102,7 +108,7 @@ void doprocessing(int sock) {
 
 	n = read(sock, buffer, 255);
 	if (n < 16) {
-		perror("ERROR reading from socket");
+		syslog(LOG_ERR, "ERROR reading from socket");
 		exit(1);
 	}
 
@@ -162,11 +168,8 @@ void doprocessing(int sock) {
 	printf("%d-%d-%d %d:%d:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 			tm.tm_hour, tm.tm_min, tm.tm_sec);
 
-	printf("Here is the message: %f, %f\n", lat.d, lon.d);
+	syslog(LOG_INFO, "Here is the message: %f, %f",lat.d, lon.d);
+
 	n = write(sock, "I got your message", 18);
-	if (n < 0) {
-		perror("ERROR writing to socket");
-		exit(1);
-	}
 }
 
