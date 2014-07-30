@@ -10,8 +10,6 @@ import java.util.concurrent.ExecutorService;
 import bg.mrm.mesto.PeerRegistry;
 
 class UpnpPeerRegistry extends PeerRegistry {
-    private String mOwnUdn;
-
     void onPeerDiscovered(final UDN udn, String title, final Endpoint[] endpoints) {
         savePeer(udn.getIdentifierString(), title, endpoints);
     }
@@ -20,11 +18,12 @@ class UpnpPeerRegistry extends PeerRegistry {
     }
 
     void initialize(final Context ctx, final ExecutorService executor, String udn) {
-        mOwnUdn = udn;
+        mOwnId = udn;
         super.initialize(ctx, executor);
     }
 
     private UpnpPeerRegistry() {
+        super(null);
     }
 
     static UpnpPeerRegistry get() {
@@ -37,11 +36,11 @@ class UpnpPeerRegistry extends PeerRegistry {
 
     @Override
     protected boolean filter(PeerDescriptor pd) {
-        return !mOwnUdn.equalsIgnoreCase(pd.udn);
+        return !mOwnId.equalsIgnoreCase(pd.udn);
     }
 
     @Override
     public List<String> exportOwnEndpoints() {
-        return UpnpUtilities.exportEndpoints(mOwnUdn);
+        return UpnpUtilities.exportEndpoints(mOwnId);
     }
 }

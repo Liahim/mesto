@@ -22,7 +22,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -331,8 +330,7 @@ public class MestoLocationService extends Service {
                             boolean successful = false;
                             for (int i = 0; i < 3; ++i) {
                                 try {
-                                    final URI uri = new URI("tcp://" + e.uri);
-                                    final Socket s = new Socket(InetAddress.getByName(uri.getHost()), uri.getPort());
+                                    final Socket s = new Socket(InetAddress.getByName(e.uri), e.portRange[0]);
 
                                     final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
                                     final DataOutputStream dos = new DataOutputStream(baos);

@@ -3,7 +3,7 @@ android {
     compileSdkVersion 19
     buildToolsVersion '19.1.0'
     defaultConfig {
-        applicationId 'com.example.mycalls'
+        applicationId 'bg.mrm.mesto'
         minSdkVersion 17
         targetSdkVersion 17
     }

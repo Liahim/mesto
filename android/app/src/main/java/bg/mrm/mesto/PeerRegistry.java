@@ -11,14 +11,14 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import bg.mrm.mesto.upnp.UpnpUtilities;
-
 /**
  * remember peer udn and endpoints here; implement revoke; sqlite
  * <p/>
  * needs cookie but will udn instead first
  */
 public abstract class PeerRegistry {
+
+    public static final String MANUAL_ENDPOINT_ID = "manually_entered";
 
     public static class Endpoint {
         public final String ssid;
@@ -39,6 +39,7 @@ public abstract class PeerRegistry {
             private String uri;
             private int[] portRange;
             private boolean external;
+            private boolean fixed;
 
             public Builder setSsid(String ssid) {
                 this.ssid = ssid;
@@ -57,6 +58,11 @@ public abstract class PeerRegistry {
 
             public Builder setExternal(boolean external) {
                 this.external = external;
+                return this;
+            }
+
+            public Builder setFixed(boolean fixed) {
+                this.fixed = fixed;
                 return this;
             }
 
@@ -79,6 +85,18 @@ public abstract class PeerRegistry {
         void onPeerGone(String udn);
     }
 
+    protected /*final*/ String mOwnId;
+    private Database mDatabase;
+
+
+    protected PeerRegistry(String ownId) {
+        mOwnId = ownId;
+    }
+
+    public String getOwnId() {
+        return mOwnId;
+    }
+
     private Notifications mListener;
 
     public void setListener(Notifications l) {
@@ -87,6 +105,13 @@ public abstract class PeerRegistry {
 
     private final List<PeerDescriptor> mPeers = new ArrayList<PeerDescriptor>();
 
+
+    public boolean savePeer(String udn, String title, Collection<Endpoint> endpoints) {
+        Endpoint[] ee = new Endpoint[endpoints.size()];
+        ee = endpoints.toArray(ee);
+
+        return savePeer(udn, title, ee);
+    }
 
     //save peer; return true if it was actually an update
     public boolean savePeer(String udn, String title, Endpoint[] endpoints) {
@@ -117,7 +142,7 @@ public abstract class PeerRegistry {
                 pd.paired = true;
             }
 
-            Database.insertInPeersAsync(mDbHelper, udn, pd);
+            mDatabase.insertInPeers(pd);
         }
     }
 
@@ -206,16 +231,15 @@ public abstract class PeerRegistry {
 //        }
 //    }
 
-    private Database.Helper mDbHelper;
     private Future<?> mFuture;
 
     public void initialize(final Context ctx, final ExecutorService executor) {
-        mDbHelper = new Database.Helper(ctx.getApplicationContext(), executor);
+        mDatabase = new Database(ctx.getApplicationContext());
 
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                Database.getAllPeers(mDbHelper, new Database.Callback() {
+                mDatabase.getAllPeers(new Database.Callback() {
                     @Override
                     public void onReadPeer(final PeerDescriptor pd) {
                         mPeers.add(pd);
@@ -226,8 +250,15 @@ public abstract class PeerRegistry {
         mFuture = executor.submit(r);
     }
 
-    public List<String> exportOwnEndpoints() {
-        return null;
+    public Endpoint[] getEndpoints(String peerId) {
+        Endpoint[] result = null;
+        final PeerRegistry.PeerDescriptor pd = findPeer(peerId);
+        if (null != pd) {
+            result = pd.endPoints;  //switch to unmodif coll instead of arr?
+        }
+        return result;
     }
+
+    public abstract List<String> exportOwnEndpoints();
 }
 

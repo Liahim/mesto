@@ -12,22 +12,22 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static bg.mrm.mesto.Globals.TAG;
 
 
 public final class Database {
-    final static class Helper extends SQLiteOpenHelper {
+    private Database.Helper mDbHelper;
+
+    private final class Helper extends SQLiteOpenHelper {
 
         public static final int DATABASE_VERSION = 1;
         public static final String DATABASE_NAME = "peers.db";
 
-        private final ExecutorService mExecutor;
-
-        public Helper(final Context context, ExecutorService executor) {
+        public Helper(final Context context) {
             super(context, DATABASE_NAME, null, DATABASE_VERSION);
-            mExecutor = executor;
         }
 
         @Override
@@ -43,20 +43,23 @@ public final class Database {
     }
 
 
-    static Future<?> insertInPeersAsync(final Helper helper, final String udn,
-                                        final PeerRegistry.PeerDescriptor pd) {
+    public Future<?> insertInPeers(final PeerRegistry.PeerDescriptor pd) {
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                insertPeer(helper, pd);
+                try {
+                    insertPeerImpl(pd);
+                } catch (SQLiteException e) {
+                    Log.e(TAG, "insertPeer exception", e);
+                }
             }
         };
 
-        return helper.mExecutor.submit(r);
+        return mExecutor.submit(r);
     }
 
-    private static void insertPeer(final Helper helper, final PeerRegistry.PeerDescriptor pd) {
-        SQLiteDatabase db = helper.getWritableDatabase();
+    private void insertPeerImpl(final PeerRegistry.PeerDescriptor pd) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
         try {
             deletePeerHelper(db, pd.udn);
 
@@ -82,12 +85,12 @@ public final class Database {
         }
     }
 
-    interface Callback {
+    public interface Callback {
         void onReadPeer(PeerRegistry.PeerDescriptor pd);
     }
 
-    static void getAllPeers(Helper helper, Callback cb) {
-        SQLiteDatabase db = helper.getReadableDatabase();
+    public void getAllPeers(Callback cb) {
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
         Cursor c = null;
         try {
             String sortOrder = PeerSchema.COLUMN_NAME_LAST_MODIFIED + " DESC";
@@ -127,7 +130,6 @@ public final class Database {
                 db.close();
             }
         }
-
     }
 
     private static void deletePeerHelper(final SQLiteDatabase db, final String udn) {
@@ -167,7 +169,7 @@ public final class Database {
 
         static final String SQL_CREATE_TABLE_PEERS = "CREATE TABLE "
                 + TABLE_NAME + "( " + PeerSchema._ID + " INTEGER PRIMARY KEY,"
-                + COLUMN_NAME_UDN + " TEXT NOT NULL UNIQUE,"
+                + COLUMN_NAME_UDN + " TEXT NOT NULL,"
                 + COLUMN_NAME_URI + " TEXT NOT NULL,"
                 + COLUMN_NAME_TITLE + " TEXT NOT NULL,"
                 + COLUMN_NAME_SSID + " TEXT,"
@@ -179,6 +181,10 @@ public final class Database {
         private static final String SQL_DELETE_TABLE_PEERS = "DROP TABLE IF EXISTS " + TABLE_NAME;
     }
 
-    private Database() {
+    private final ExecutorService mExecutor;
+
+    public Database(final Context ctx) {
+        mDbHelper = new Helper(ctx);
+        mExecutor = Executors.newSingleThreadExecutor();
     }
 }

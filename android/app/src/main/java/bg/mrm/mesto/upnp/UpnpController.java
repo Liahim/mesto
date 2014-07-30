@@ -49,7 +49,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import bg.mrm.mesto.FixedAndroidHandler;
 import bg.mrm.mesto.PeerRegistry;
 import bg.mrm.mesto.Utilities;
 

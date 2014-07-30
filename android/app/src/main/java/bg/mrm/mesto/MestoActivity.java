@@ -17,20 +17,19 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
-import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import static bg.mrm.mesto.Globals.TAG;
 
@@ -270,13 +269,22 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
         final LayoutInflater inflater = getLayoutInflater();
 
         final View view = inflater.inflate(R.layout.dialog_settings, null);
-        final AutoCompleteTextView serverAddress
-                = (AutoCompleteTextView) view.findViewById(R.id.serverAddress);
+        final EditText serverAddress = (EditText) view.findViewById(R.id.serverAddress);
+        final StringBuilder sb = new StringBuilder();
 
-        final List<String> ee = mService.getPeerRegistry().exportOwnEndpoints();
-        for (final String s : ee) {
-            serverAddress.setText(s + '\n');
+        final PeerRegistry.Endpoint[] ee
+                = mService.getPeerRegistry().getEndpoints(PeerRegistry.MANUAL_ENDPOINT_ID);
+
+        final List<PeerRegistry.Endpoint> newEndpoints = new ArrayList<PeerRegistry.Endpoint>();
+        if (null != ee) {
+            for (final PeerRegistry.Endpoint e : ee) {
+                sb.append(e.uri);
+                sb.append(':');
+                sb.append(e.portRange[0]);
+                sb.append('\n');
+            }
         }
+        serverAddress.setText(sb.toString());
 
         final TextView tv = (TextView) view.findViewById(R.id.localServer);
         final String ipAddress = Utilities.getIPAddress(true);
@@ -288,14 +296,32 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
                     @Override
                     public void onClick(final DialogInterface dialog, final int id) {
                         final String server = serverAddress.getText().toString();
-                        final Set<String> uris = new HashSet<String>();
-
                         if (!server.isEmpty()) {
                             final String[] tmp = server.split("\n");
-                            Collections.addAll(uris, tmp);
+                            PeerRegistry.Endpoint.Builder b = new PeerRegistry.Endpoint.Builder();
+
+                            for (String s : tmp) {
+                                try {
+                                    URI uri = new URI("tcp://" + s);
+                                    b.setExternal(true);
+                                    b.setPortRange(new int[]{uri.getPort(), uri.getPort()});
+                                    b.setSsid(null);
+                                    b.setFixed(true);
+                                    b.setUri(uri.getHost());
+
+                                    newEndpoints.add(b.make());
+                                } catch (URISyntaxException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+
+                            mService.getPeerRegistry().savePeer(
+                                    PeerRegistry.MANUAL_ENDPOINT_ID,
+                                    PeerRegistry.MANUAL_ENDPOINT_ID,
+                                    newEndpoints);
+                            mService.getPeerRegistry().commitPeer(PeerRegistry.MANUAL_ENDPOINT_ID);
                         }
 
-                        //mService.getPeerRegistry().commitPeer();@todo save manually entered endpoints
                         mService.sendLocation();
                     }
                 })
@@ -413,8 +439,8 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
 
     private final void onMenuDumpPeers() {
         if (null != mService) {
-            StringBuilder sb=new StringBuilder();
-            for (PeerRegistry.Endpoint e: mService.getPeerRegistry().getUpdateEndpoints()) {
+            StringBuilder sb = new StringBuilder();
+            for (PeerRegistry.Endpoint e : mService.getPeerRegistry().getUpdateEndpoints()) {
                 sb.append("peer endpoint: " + e.uri + "; ssid: " + e.ssid + '\n');
             }
 
