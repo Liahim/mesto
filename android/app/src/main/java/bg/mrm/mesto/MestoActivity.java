@@ -273,7 +273,7 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
         final StringBuilder sb = new StringBuilder();
 
         final PeerRegistry.Endpoint[] ee
-                = mService.getPeerRegistry().getEndpoints(PeerRegistry.MANUAL_ENDPOINT_ID);
+                = mService.getPeerRegistry().getEndpoints(PeerRegistry.OWN_MANUAL_ENDPOINT_ID);
 
         final List<PeerRegistry.Endpoint> newEndpoints = new ArrayList<PeerRegistry.Endpoint>();
         if (null != ee) {
@@ -316,10 +316,10 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
                             }
 
                             mService.getPeerRegistry().trackPeer(
-                                    PeerRegistry.MANUAL_ENDPOINT_ID,
-                                    PeerRegistry.MANUAL_ENDPOINT_ID,
+                                    PeerRegistry.OWN_MANUAL_ENDPOINT_ID,
+                                    PeerRegistry.OWN_MANUAL_ENDPOINT_ID,
                                     newEndpoints);
-                            mService.getPeerRegistry().pairPeer(PeerRegistry.MANUAL_ENDPOINT_ID);
+                            mService.getPeerRegistry().pairPeer(PeerRegistry.OWN_MANUAL_ENDPOINT_ID);
                         }
 
                         mService.sendLocation();

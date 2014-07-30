@@ -230,10 +230,15 @@ public class UpnpController {
                         b.setSsid(wifi.getConnectionInfo().getSSID());
                         b.setExternal(true);
 
-                        final String udn = service.getDevice().getIdentity().getUdn().getIdentifierString();
                         PeerRegistry.Endpoint[] ee = new PeerRegistry.Endpoint[1];
                         ee[0] = b.make();//overwrites other endpoints, needs api changes
-                        UpnpPeerRegistry.get().trackPeer(udn, Build.MODEL, ee);
+
+                        //have to add instead of overwrite and track separately expiring endpoints
+                        UpnpPeerRegistry.get().trackPeer(
+                                PeerRegistry.OWN_EXTERNAL_ENDPOINT_ID,
+                                PeerRegistry.OWN_EXTERNAL_ENDPOINT_ID,
+                                ee);
+                        UpnpPeerRegistry.get().pairPeer(PeerRegistry.OWN_EXTERNAL_ENDPOINT_ID);
                     }
 
                     @Override

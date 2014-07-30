@@ -15,7 +15,8 @@ import java.util.concurrent.Future;
 
 public abstract class PeerRegistry {
 
-    public static final String MANUAL_ENDPOINT_ID = "manually_entered";
+    public static final String OWN_MANUAL_ENDPOINT_ID = "FF808181478958FB014789590CD90001";
+    public static final String OWN_EXTERNAL_ENDPOINT_ID = "FF808181478958FB01478958FB2B0000";
 
     public static class Endpoint {
         public final String ssid;
@@ -121,6 +122,7 @@ public abstract class PeerRegistry {
             mPeers.add(pd);
         } else {
             pd.endPoints = endpoints;
+            mDatabase.savePeer(pd);
         }
 
         if (null != mListener && !mOwnId.equalsIgnoreCase(udn)) {
@@ -145,7 +147,7 @@ public abstract class PeerRegistry {
                 pd.paired = true;
             }
 
-            mDatabase.insertInPeers(pd);
+            mDatabase.savePeer(pd);
         }
     }
 
@@ -208,8 +210,9 @@ public abstract class PeerRegistry {
     }
 
     protected boolean includeFilter(PeerDescriptor pd) {
-        return pd.paired && !PeerRegistry.MANUAL_ENDPOINT_ID.equalsIgnoreCase(pd.udn)
-                && !mOwnId.equalsIgnoreCase(pd.udn);
+        return pd.paired
+                && !mOwnId.equalsIgnoreCase(pd.udn)
+                && !PeerRegistry.OWN_EXTERNAL_ENDPOINT_ID.equalsIgnoreCase(pd.udn);
     }
 
     public void initialize(final Context ctx, final ExecutorService executor) {

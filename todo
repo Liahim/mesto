@@ -1,0 +1,4 @@
+multidevice support
+allow running more than one service in the same process-
+to simulate multiple devices easier
+default port (range) for manual entry too

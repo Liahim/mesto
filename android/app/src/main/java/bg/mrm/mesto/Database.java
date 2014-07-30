@@ -43,7 +43,7 @@ public final class Database {
     }
 
 
-    public Future<?> insertInPeers(final PeerRegistry.PeerDescriptor pd) {
+    public Future<?> savePeer(final PeerRegistry.PeerDescriptor pd) {
         final Runnable r = new Runnable() {
             @Override
             public void run() {
