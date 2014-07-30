@@ -57,7 +57,6 @@ public class MestoLocationService extends Service {
 
 
     static class Event {
-
         private final static Type[] sTypes = Type.values();
         final Type mType;
         final long mTime;

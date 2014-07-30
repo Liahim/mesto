@@ -11,10 +11,11 @@ import bg.mrm.mesto.PeerRegistry;
 
 class UpnpPeerRegistry extends PeerRegistry {
     void onPeerDiscovered(final UDN udn, String title, final Endpoint[] endpoints) {
-        savePeer(udn.getIdentifierString(), title, endpoints);
+        trackPeer(udn.getIdentifierString(), title, endpoints);
     }
 
-    void onPeerGone(final UDN udn) {
+    void onPeerGone(final String id) {
+        untrackPeer(id);
     }
 
     void initialize(final Context ctx, final ExecutorService executor, String udn) {
@@ -32,11 +33,6 @@ class UpnpPeerRegistry extends PeerRegistry {
 
     private final static class Holder {
         static UpnpPeerRegistry INSTANCE = new UpnpPeerRegistry();
-    }
-
-    @Override
-    protected boolean filter(PeerDescriptor pd) {
-        return !mOwnId.equalsIgnoreCase(pd.udn);
     }
 
     @Override

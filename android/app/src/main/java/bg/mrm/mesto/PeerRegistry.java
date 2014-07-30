@@ -2,6 +2,7 @@ package bg.mrm.mesto;
 
 import android.content.Context;
 import android.util.Log;
+import android.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,11 +12,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-/**
- * remember peer udn and endpoints here; implement revoke; sqlite
- * <p/>
- * needs cookie but will udn instead first
- */
+
 public abstract class PeerRegistry {
 
     public static final String MANUAL_ENDPOINT_ID = "manually_entered";
@@ -87,34 +84,32 @@ public abstract class PeerRegistry {
 
     protected /*final*/ String mOwnId;
     private Database mDatabase;
-
-
-    protected PeerRegistry(String ownId) {
-        mOwnId = ownId;
-    }
-
-    public String getOwnId() {
-        return mOwnId;
-    }
-
     private Notifications mListener;
-
-    public void setListener(Notifications l) {
-        mListener = l;
-    }
-
+    private Future<?> mInitFuture;
     private final List<PeerDescriptor> mPeers = new ArrayList<PeerDescriptor>();
 
 
-    public boolean savePeer(String udn, String title, Collection<Endpoint> endpoints) {
+    public void setListener(Notifications l) {
+        waitForInit();
+
+        mListener = l;
+        if (null != mListener) {
+            for (PeerDescriptor pd : mPeers) {
+                if (!mOwnId.equalsIgnoreCase(pd.udn)) {
+                    mListener.onPeerDiscovered(pd.udn, pd.title, pd.paired);
+                }
+            }
+        }
+    }
+
+    public boolean trackPeer(String udn, String title, Collection<Endpoint> endpoints) {
         Endpoint[] ee = new Endpoint[endpoints.size()];
         ee = endpoints.toArray(ee);
 
-        return savePeer(udn, title, ee);
+        return trackPeer(udn, title, ee);
     }
 
-    //save peer; return true if it was actually an update
-    public boolean savePeer(String udn, String title, Endpoint[] endpoints) {
+    public boolean trackPeer(String udn, String title, Endpoint[] endpoints) {
         PeerDescriptor pd = findPeer(udn);
         boolean update = null != pd;
         if (!update) {
@@ -128,14 +123,22 @@ public abstract class PeerRegistry {
             pd.endPoints = endpoints;
         }
 
-        if (null != mListener) {
+        if (null != mListener && !mOwnId.equalsIgnoreCase(udn)) {
             mListener.onPeerDiscovered(udn, title, pd.paired);
         }
 
         return update;
     }
 
-    public void commitPeer(String udn) {
+    public void untrackPeer(String id) {
+        Pair<Integer, PeerDescriptor> pair = findPeerImpl(id);
+        mPeers.remove(pair.first);
+        if (null != mListener) {
+            mListener.onPeerGone(pair.second.udn);
+        }
+    }
+
+    public void pairPeer(String udn) {
         PeerDescriptor pd = findPeer(udn);
         if (null != pd) {
             if (!pd.paired) {
@@ -146,42 +149,32 @@ public abstract class PeerRegistry {
         }
     }
 
-
-    /**
-     * When a new peer is discovered determine whether it has been registered
-     * which could make it possible to directly reach this peer and also
-     * retrieve updated peer information
-     *
-     * @param udn
-     * @return
-     */
     public PeerDescriptor findPeer(String udn) {
-        for (PeerDescriptor pd : mPeers) {
+        Pair<Integer, PeerDescriptor> pair = findPeerImpl(udn);
+        return null != pair ? pair.second : null;
+    }
+
+    private Pair<Integer, PeerDescriptor> findPeerImpl(String udn) {
+        for (int i = 0; i < mPeers.size(); ++i) {
+            PeerDescriptor pd = mPeers.get(i);
             if (pd.udn.equalsIgnoreCase(udn)) {
-                return pd;
+                return new Pair<Integer, PeerDescriptor>(i, pd);
             }
         }
         return null;
     }
 
-    /**
-     * User-initiated removal
-     *
-     * @param udn
-     */
-    public void removePeer(String udn) {
-    }
+    public boolean unpairPeer(String udn) {
+        boolean removed = false;
 
-    //internally track endpoint reachability
+        PeerDescriptor pd = findPeer(udn);
+        if (null != pd) {
+            pd.paired = false;
+            mDatabase.removePeer(udn);
+            removed = true;
+        }
 
-    /**
-     * Allow updates for previously registered peers
-     *
-     * @param peer
-     * @return
-     */
-    public boolean updatePeer(PeerDescriptor peer) {
-        return true;
+        return removed;
     }
 
     /**
@@ -191,17 +184,11 @@ public abstract class PeerRegistry {
      * @return
      */
     public Collection<Endpoint> getUpdateEndpoints() {
-        if (!mFuture.isDone()) {
-            Log.i(Globals.TAG, "have to wait for the db to be initialized");
-            try {
-                mFuture.get();
-            } catch (Exception e) {
-                Log.e(Globals.TAG, "error while initializing the db", e);
-            }
-        }
+        waitForInit();
+
         List<Endpoint> ee = new ArrayList<Endpoint>();
         for (PeerDescriptor pd : mPeers) {
-            if (filter(pd)) {
+            if (includeFilter(pd)) {
                 ee.addAll(Arrays.asList(pd.endPoints));
             }
         }
@@ -209,29 +196,21 @@ public abstract class PeerRegistry {
         return Collections.unmodifiableCollection(ee);
     }
 
-    protected boolean filter(PeerDescriptor pd) {
-        return true;
+    private void waitForInit() {
+        if (!mInitFuture.isDone()) {
+            Log.i(Globals.TAG, "have to wait for the db to be initialized");
+            try {
+                mInitFuture.get();
+            } catch (Exception e) {
+                Log.e(Globals.TAG, "error while initializing the db", e);
+            }
+        }
     }
 
-//    private List<Endpoint> mEndpoints = new ArrayList<Endpoint>();
-//
-//    public void addOwnEndpoint(Endpoint endpoint) {
-//        boolean updated = false;
-//        for (Endpoint e : mEndpoints) {
-//            if (null != e.ssid && e.ssid.equalsIgnoreCase(endpoint.ssid)) {
-//                e.uri = endpoint.uri;
-//                e.portRange = endpoint.portRange;
-//                updated = true;
-//                break;
-//            }
-//        }
-//
-//        if (!updated) {
-//            mEndpoints.add(endpoint);
-//        }
-//    }
-
-    private Future<?> mFuture;
+    protected boolean includeFilter(PeerDescriptor pd) {
+        return pd.paired && !PeerRegistry.MANUAL_ENDPOINT_ID.equalsIgnoreCase(pd.udn)
+                && !mOwnId.equalsIgnoreCase(pd.udn);
+    }
 
     public void initialize(final Context ctx, final ExecutorService executor) {
         mDatabase = new Database(ctx.getApplicationContext());
@@ -247,7 +226,7 @@ public abstract class PeerRegistry {
                 });
             }
         };
-        mFuture = executor.submit(r);
+        mInitFuture = executor.submit(r);
     }
 
     public Endpoint[] getEndpoints(String peerId) {
@@ -257,6 +236,10 @@ public abstract class PeerRegistry {
             result = pd.endPoints;  //switch to unmodif coll instead of arr?
         }
         return result;
+    }
+
+    protected PeerRegistry(String ownId) {
+        mOwnId = ownId;
     }
 
     public abstract List<String> exportOwnEndpoints();

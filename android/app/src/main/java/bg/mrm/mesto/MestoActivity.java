@@ -315,11 +315,11 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
                                 }
                             }
 
-                            mService.getPeerRegistry().savePeer(
+                            mService.getPeerRegistry().trackPeer(
                                     PeerRegistry.MANUAL_ENDPOINT_ID,
                                     PeerRegistry.MANUAL_ENDPOINT_ID,
                                     newEndpoints);
-                            mService.getPeerRegistry().commitPeer(PeerRegistry.MANUAL_ENDPOINT_ID);
+                            mService.getPeerRegistry().pairPeer(PeerRegistry.MANUAL_ENDPOINT_ID);
                         }
 
                         mService.sendLocation();
@@ -348,28 +348,12 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
                 }
 
                 tv.setText(title);
+                final TextView ftv = tv;
                 if (known) {
                     tv.setTextColor(Color.GREEN);
+                    tv.setOnClickListener(new KnownPeerOnClickListener(udn, ftv));
                 } else {
-                    final TextView ftv = tv;
-                    tv.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
-                            final LayoutInflater inflater = getLayoutInflater();
-
-                            final View view = inflater.inflate(R.layout.dialog_pin, null);
-                            builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(final DialogInterface dialog, final int id) {
-                                    mService.getPeerRegistry().commitPeer(udn);
-                                    ftv.setTextColor(Color.GREEN);
-                                    Toast.makeText(MestoActivity.this, "Peer registered", Toast.LENGTH_LONG).show();
-                                }
-                            }).setNegativeButton(R.string.button_cancel, null);
-                            builder.create().show();
-                        }
-                    });
+                    tv.setOnClickListener(new UnknownPeerOnClickListener(udn, ftv));
                 }
             }
         };
@@ -451,4 +435,62 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
         displayStatusText();
     }
 
+    private class KnownPeerOnClickListener implements View.OnClickListener {
+        private final String udn;
+        private final TextView ftv;
+
+        public KnownPeerOnClickListener(final String udn, final TextView ftv) {
+            this.udn = udn;
+            this.ftv = ftv;
+        }
+
+        @Override
+        public void onClick(final View v) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
+            final LayoutInflater inflater = getLayoutInflater();
+
+            final View view = inflater.inflate(R.layout.dialog_pin, null);
+            builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(final DialogInterface dialog, final int id) {
+                    mService.getPeerRegistry().unpairPeer(udn);
+                    ftv.setTextColor(Color.BLACK);
+                    Toast.makeText(MestoActivity.this, "Peer removed", Toast.LENGTH_LONG).show();
+
+                    ftv.setOnClickListener(new UnknownPeerOnClickListener(udn, ftv));
+                }
+            }).setNegativeButton(R.string.button_cancel, null);
+            builder.create().show();
+
+        }
+    }
+
+    private class UnknownPeerOnClickListener implements View.OnClickListener {
+        private final String udn;
+        private final TextView ftv;
+
+        public UnknownPeerOnClickListener(final String udn, final TextView ftv) {
+            this.udn = udn;
+            this.ftv = ftv;
+        }
+
+        @Override
+        public void onClick(View v) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(MestoActivity.this);
+            final LayoutInflater inflater = getLayoutInflater();
+
+            final View view = inflater.inflate(R.layout.dialog_pin, null);
+            builder.setView(view).setPositiveButton(R.string.button_save, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(final DialogInterface dialog, final int id) {
+                    mService.getPeerRegistry().pairPeer(udn);
+                    ftv.setTextColor(Color.GREEN);
+                    Toast.makeText(MestoActivity.this, "Peer registered", Toast.LENGTH_LONG).show();
+
+                    ftv.setOnClickListener(new KnownPeerOnClickListener(udn, ftv));
+                }
+            }).setNegativeButton(R.string.button_cancel, null);
+            builder.create().show();
+        }
+    }
 }

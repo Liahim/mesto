@@ -89,7 +89,7 @@ public class UpnpController {
                 false
         );
 
-        UpnpPeerRegistry.get().savePeer(mIdentity.getUdn().getIdentifierString(), Build.MODEL, e);
+        UpnpPeerRegistry.get().trackPeer(mIdentity.getUdn().getIdentifierString(), Build.MODEL, e);
     }
 
     public boolean isUp() {
@@ -138,7 +138,7 @@ public class UpnpController {
         @Override
         public void remoteDeviceRemoved(Registry registry, RemoteDevice device) {
             Log.i(TAG, "remote device removed");
-            UpnpPeerRegistry.get().onPeerGone(device.getIdentity().getUdn());//@todo
+            UpnpPeerRegistry.get().onPeerGone(device.getIdentity().getUdn().getIdentifierString());//@todo
         }
 
         @Override
@@ -233,7 +233,7 @@ public class UpnpController {
                         final String udn = service.getDevice().getIdentity().getUdn().getIdentifierString();
                         PeerRegistry.Endpoint[] ee = new PeerRegistry.Endpoint[1];
                         ee[0] = b.make();//overwrites other endpoints, needs api changes
-                        UpnpPeerRegistry.get().savePeer(udn, Build.MODEL, ee);
+                        UpnpPeerRegistry.get().trackPeer(udn, Build.MODEL, ee);
                     }
 
                     @Override
