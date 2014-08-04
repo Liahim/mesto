@@ -1,5 +1,6 @@
-#include <sys/mman.h>
+#include <stdlib.h>
 
+#include <sys/mman.h>
 #include <strings.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,7 +14,6 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <syslog.h>
@@ -98,6 +98,7 @@ int main(int argc, char *argv[]) {
 	} /* end of while */
 
 	munmap(glob_var, sizeof *glob_var);
+	closelog();
 }
 
 void doprocessing(int sock) {
@@ -123,16 +124,18 @@ void doprocessing(int sock) {
 	short udnLength = buffer[offset++]<<8;
 	udnLength |= buffer[offset++];
 
-	char* udn = malloc(udnLength);
+	char* udn = malloc(udnLength+1);
 	memcpy(udn, buffer+offset, udnLength);
+	*(udn+udnLength) = 0;
 	offset += udnLength;
 
 	//title utf-8 string
 	short titleLength = buffer[offset++]<<8;
 	titleLength |= buffer[offset++];
 
-	char* title = malloc(udnLength);
+	char* title = malloc(titleLength+1);
 	memcpy(title, buffer+offset, titleLength);
+	*(title+titleLength) = 0;
 	offset += titleLength;
 
 	lon.b[7] = buffer[offset++];
