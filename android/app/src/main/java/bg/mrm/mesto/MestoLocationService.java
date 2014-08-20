@@ -179,21 +179,21 @@ public class MestoLocationService extends Service {
         if (USE_NETWORK_AND_FUSED_PROVIDERS == provider) {
             if (ps.contains(LocationManager.NETWORK_PROVIDER)) {
                 mNetworkListener = new MyLocationListener();
-                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 15 * 60 * 1000,
-                        0, mNetworkListener);
+                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10 * 60 * 1000,
+                        500, mNetworkListener);
                 Log.d(TAG, "network_provider selected");
             }
 
             if (ps.contains(LocationManager.PASSIVE_PROVIDER)) {
                 mPassiveListener = new MyLocationListener();
-                lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 7 * 60 * 1000,
-                        0, mPassiveListener);
+                lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 5 * 60 * 1000,
+                        500, mPassiveListener);
                 Log.d(TAG, "passive_provider selected");
             }
         } else if (USE_GPS_PROVIDER == provider) {
             if (ps.contains(LocationManager.GPS_PROVIDER)) {
                 mGpsListener = new MyLocationListener();
-                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3 * 60 * 1000,
+                lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1 * 60 * 1000,
                         0, mGpsListener);
                 Log.d(TAG, "gps_provider selected");
             }
