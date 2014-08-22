@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import bg.mrm.mesto.upnp.UpnpController;
@@ -45,6 +47,8 @@ public class MestoLocationService extends Service {
 
     private final Binder mBinder = new Binder();
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
+    private ScheduledExecutorService mScheduledExecutor;
+    private ScheduledFuture<?> mScheduledFuture;
     private final LinkedList<Event> mLogEvents = new LinkedList<Event>();
     private final Collection<Runnable> mRunnableCallbacks = new HashSet<Runnable>();
     private boolean mIsReporting = true;
@@ -196,9 +200,46 @@ public class MestoLocationService extends Service {
                 lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1 * 60 * 1000,
                         0, mGpsListener);
                 Log.d(TAG, "gps_provider selected");
+                scheduleGpsTimer();
             }
         }
         //@todo fallback strategies in case gps or network are unavailable
+    }
+
+    private void scheduleGpsTimer() {
+        if (null != mGpsListener) {
+            Log.d(TAG, "scheduleGpsTimer");
+
+            if (null == mScheduledExecutor) {
+                mScheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+            } else if (null != mScheduledFuture) {
+                mScheduledFuture.cancel(true);
+            }
+
+            final Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    stopMonitoring();
+                    startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
+                }
+            };
+
+            mScheduledFuture = mScheduledExecutor.schedule(r, 5, TimeUnit.MINUTES);
+        }
+    }
+
+    private void stopGpsTimer() {
+        if (null != mScheduledExecutor) {
+            Log.d(TAG, "stopGpsTimer");
+
+            if (null != mScheduledFuture) {
+                mScheduledFuture.cancel(true);
+                mScheduledFuture = null;
+            }
+
+            mScheduledExecutor.shutdownNow();
+            mScheduledExecutor = null;
+        }
     }
 
     private final void stopMonitoring() {
@@ -207,6 +248,8 @@ public class MestoLocationService extends Service {
             Log.d(TAG, "about to stop listening to gps_provider");
             locationManager.removeUpdates(mGpsListener);
             mGpsListener = null;
+
+            stopGpsTimer();
         }
         if (null != mPassiveListener) {
             Log.d(TAG, "about to stop listening to passive_provider");
@@ -500,7 +543,10 @@ public class MestoLocationService extends Service {
     private final class MyLocationListener implements LocationListener {
         public void onLocationChanged(final Location l) {
             Log.d(TAG, "location: " + l);
+
             if (mIsReporting) {
+                scheduleGpsTimer();
+
                 final Location ll = getLastLocation();
                 if (null != ll) {
                     final long timePassed = l.getElapsedRealtimeNanos() - ll.getElapsedRealtimeNanos();
