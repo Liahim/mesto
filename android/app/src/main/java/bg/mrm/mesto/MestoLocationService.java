@@ -90,7 +90,7 @@ public class MestoLocationService extends Service {
 
         persistEvent(registerEvent(Event.Type.Start));
 
-        startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
+        startReporting();
         mExecutor.submit(mServer);
 
         mUpnpController = new UpnpController(this, mExecutor);
@@ -249,7 +249,11 @@ public class MestoLocationService extends Service {
             locationManager.removeUpdates(mGpsListener);
             mGpsListener = null;
 
-            stopGpsTimer();
+            try {
+                stopGpsTimer();
+            } catch (Exception e) {
+                Log.e(TAG, "exception from stopGpsTimer", e);
+            }
         }
         if (null != mPassiveListener) {
             Log.d(TAG, "about to stop listening to passive_provider");
@@ -312,7 +316,7 @@ public class MestoLocationService extends Service {
     void startReporting() {
         Log.i(TAG, "start reporting requested");
         mIsReporting = true;
-        startMonitoring(USE_GPS_PROVIDER);
+        startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
     }
 
     Collection<Event> getLogEvents() {
