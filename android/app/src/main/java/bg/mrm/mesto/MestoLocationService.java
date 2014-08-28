@@ -45,6 +45,9 @@ public class MestoLocationService extends Service {
     private final static int MAX_LOG_EVENTS = 100;
     private final static long TWO_MINUTES_IN_NANOS = TimeUnit.MINUTES.toNanos(2);
 
+    private static final int DISTANCE_THRESHOLD = 100;    //meters
+    private static final int MAX_PREVIOUS_LOCATIONS = 5;
+
     private final Binder mBinder = new Binder();
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
     private ScheduledExecutorService mScheduledExecutor;
@@ -59,6 +62,8 @@ public class MestoLocationService extends Service {
     private LocationListener mGpsListener;
     private LocationListener mPassiveListener;
 
+    private Location mLastLocation;
+    private ArrayList<Location> mPreviousLocations = new ArrayList<Location>();
 
     static class Event {
         private final static Type[] sTypes = Type.values();
@@ -269,16 +274,15 @@ public class MestoLocationService extends Service {
     }
 
     public void sendLocation() {
-        final Location l = getLastLocation();
-        if (null != l) {
+        if (null != mLastLocation) {
             /*final Location l = new Location(mLastLocation);
             l.setLatitude(37.390017);
             l.setLongitude(-121.955094);
             sendLocation(l, "TestDeviceUdn", "TestDevice");*/
 
-            sendLocation(l, mDeviceId, Build.DEVICE);
+            sendLocation(mLastLocation, mDeviceId, Build.DEVICE);
         } else {
-            Log.e(TAG, "no paired last location");
+            Log.e(TAG, "no location to send");
         }
     }
 
@@ -325,10 +329,6 @@ public class MestoLocationService extends Service {
         }
     }
 
-    private static final int DISTANCE_THRESHOLD = 100;    //meters
-    private static final int MAX_PREVIOUS_LOCATIONS = 5;
-    private ArrayList<Location> mPreviousLocations = new ArrayList<Location>();
-
     private boolean detectMovement(final Location location) {
         for (final Location l : mPreviousLocations) {
             final float distance = l.distanceTo(location);
@@ -341,28 +341,9 @@ public class MestoLocationService extends Service {
         return false;
     }
 
-    private Location getLastLocation() {
-        final Location result;
-        if (mPreviousLocations.size() > 0) {
-            result = mPreviousLocations.get(0);
-        } else {
-            result = null;
-        }
-        return result;
-    }
-
     private void sendLocation(final Location location, final String udn, final String title) {
         final boolean moving = detectMovement(location);
-        if (null == mGpsListener && moving) {
-            Log.i(TAG, "enabling gps provider; seems to be moving");
-            stopMonitoring();
-            startMonitoring(USE_GPS_PROVIDER);
-        } else if (null != mGpsListener && !moving) {
-            Log.i(TAG, "switching to network provider only; seems to be stationary");
-            stopMonitoring();
-            startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
-        }
-        rememberLastLocation(location);
+        switchMonitorIfNecessary(moving);
 
         final Runnable updateRunnable = new Runnable() {
             @Override
@@ -373,36 +354,13 @@ public class MestoLocationService extends Service {
                     final Runnable peerRunnable = new Runnable() {
                         @Override
                         public final void run() {
-                            boolean successful = false;
                             for (int i = 0; i < 3; ++i) {
-                                try {
-                                    final Socket s = new Socket(InetAddress.getByName(e.uri), e.portRange[0]);
-
-                                    final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
-                                    final DataOutputStream dos = new DataOutputStream(baos);
-
-                                    dos.writeUTF(udn);
-                                    dos.writeUTF(title);
-                                    dos.writeDouble(location.getLatitude());
-                                    dos.writeDouble(location.getLongitude());
-
-                                    final byte[] bytes = baos.toByteArray();
-                                    s.getOutputStream().write(bytes);
-                                    s.close();
-
-                                    successful = true;
-                                    Log.i(TAG, "updated: " + e.uri);
+                                if (socketWrite(e, i)) {
+                                    persistEvent(registerEvent(Event.Type.Update));
+                                    for (final Runnable cb : mRunnableCallbacks) {
+                                        cb.run();
+                                    }
                                     break;
-                                } catch (final Exception exc) {
-                                    Log.e(TAG, "update error: " + e.uri);
-                                    SystemClock.sleep(3000 * (1 + i));
-                                }
-                            }
-
-                            if (successful) {
-                                persistEvent(registerEvent(Event.Type.Update));
-                                for (final Runnable cb : mRunnableCallbacks) {
-                                    cb.run();
                                 }
                             }
                         }
@@ -410,6 +368,52 @@ public class MestoLocationService extends Service {
 
                     mExecutor.execute(peerRunnable);
                 }
+            }
+
+            private final boolean socketWrite(final PeerRegistry.Endpoint e, final int sleepFactor) {
+                boolean result = false;
+
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+                final DataOutputStream dos = new DataOutputStream(baos);
+                Socket s = null;
+
+                try {
+                    s = new Socket(InetAddress.getByName(e.uri), e.portRange[0]);
+
+                    dos.writeUTF(udn);
+                    dos.writeUTF(title);
+                    dos.writeDouble(location.getLatitude());
+                    dos.writeDouble(location.getLongitude());
+
+                    final byte[] bytes = baos.toByteArray();
+                    s.getOutputStream().write(bytes);
+                    s.close();
+
+                    result = true;
+                    Log.i(TAG, "updated: " + e.uri);
+
+                } catch (final Exception exc) {
+                    Log.e(TAG, "update error: " + e.uri);
+                    SystemClock.sleep(3000 * (1 + sleepFactor));
+
+                } finally {
+                    try {
+                        dos.close();
+                    } catch (IOException e1) {
+                    }
+                    try {
+                        baos.close();
+                    } catch (IOException e1) {
+                    }
+                    if (null != s) {
+                        try {
+                            s.close();
+                        } catch (IOException e1) {
+                        }
+                    }
+                }
+
+                return result;
             }
         };
 
@@ -420,16 +424,31 @@ public class MestoLocationService extends Service {
         }
     }
 
-    private void rememberLastLocation(final Location location) {
-        if (mPreviousLocations.size() >= MAX_PREVIOUS_LOCATIONS) {
-            mPreviousLocations.remove(mPreviousLocations.size() - 1);
+    private void switchMonitorIfNecessary(final boolean moving) {
+        if (null == mGpsListener && moving) {
+            Log.i(TAG, "enable gps provider; in motion");
+            stopMonitoring();
+            startMonitoring(USE_GPS_PROVIDER);
+        } else if (null != mGpsListener && !moving) {
+            Log.i(TAG, "switch to network provider; stationary");
+            stopMonitoring();
+            startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
         }
-        mPreviousLocations.add(0, location);
+    }
+
+    private void updateLocationHistory(final Location location) {
+        if (null != mLastLocation) {
+            if (mPreviousLocations.size() >= MAX_PREVIOUS_LOCATIONS) {
+                mPreviousLocations.remove(mPreviousLocations.size() - 1);
+            }
+            mPreviousLocations.add(0, mLastLocation);
+        }
+        mLastLocation = location;
     }
 
     private final Event registerEvent(final Event.Type type) {
-        Event result = null;
         final long lastUpdateTime = System.currentTimeMillis();
+        Event result;
 
         synchronized (mLogEvents) {
             if (MAX_LOG_EVENTS == mLogEvents.size()) {
@@ -551,15 +570,16 @@ public class MestoLocationService extends Service {
             if (mIsReporting) {
                 scheduleGpsTimer();
 
-                final Location ll = getLastLocation();
-                if (null != ll) {
-                    final long timePassed = l.getElapsedRealtimeNanos() - ll.getElapsedRealtimeNanos();
-                    if (l.getAccuracy() >= ll.getAccuracy() && ll.distanceTo(l) < 50 && timePassed < TWO_MINUTES_IN_NANOS) {
+                if (null != mLastLocation) {
+                    final long timePassed = l.getElapsedRealtimeNanos() - mLastLocation.getElapsedRealtimeNanos();
+                    if (l.getAccuracy() >= mLastLocation.getAccuracy()
+                            && mLastLocation.distanceTo(l) < 50 && timePassed < TWO_MINUTES_IN_NANOS) {
                         Log.i(TAG, "skip reporting less accurate location");
                         return;
                     }
                 }
 
+                updateLocationHistory(l);
                 sendLocation(l, mDeviceId, Build.DEVICE);
             }
         }
