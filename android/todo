@@ -15,3 +15,5 @@ multiple peer endpoints support
 protocol ext to pass devid and name, possibly
 
 gesturelistener to speed up scrolling of the event log
+
+force get current location and update

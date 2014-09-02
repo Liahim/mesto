@@ -8,6 +8,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
@@ -15,6 +16,7 @@ import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,7 +42,7 @@ import bg.mrm.mesto.upnp.UpnpController;
 import static bg.mrm.mesto.Globals.TAG;
 
 public class MestoLocationService extends Service {
-    private static final boolean USE_NETWORK_AND_FUSED_PROVIDERS = true;
+    private static final boolean USE_NETWORK_OR_PASSIVE_PROVIDER = true;
     private static final boolean USE_GPS_PROVIDER = false;
     private final static int MAX_LOG_EVENTS = 100;
     private final static long TWO_MINUTES_IN_NANOS = TimeUnit.MINUTES.toNanos(2);
@@ -100,6 +102,9 @@ public class MestoLocationService extends Service {
 
         mUpnpController = new UpnpController(this, mExecutor);
         mDeviceId = mUpnpController.getOwnUdn();
+
+        /*final File f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        Log.i(TAG, "dlcache: " + f.toString());*/
     }
 
     @Override
@@ -185,15 +190,13 @@ public class MestoLocationService extends Service {
                 Context.LOCATION_SERVICE);
         final List<String> ps = lm.getAllProviders();
 
-        if (USE_NETWORK_AND_FUSED_PROVIDERS == provider) {
+        if (USE_NETWORK_OR_PASSIVE_PROVIDER == provider) {
             if (ps.contains(LocationManager.NETWORK_PROVIDER)) {
                 mNetworkListener = new MyLocationListener();
                 lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10 * 60 * 1000,
                         500, mNetworkListener);
                 Log.d(TAG, "network_provider selected");
-            }
-
-            if (ps.contains(LocationManager.PASSIVE_PROVIDER)) {
+            } else if (ps.contains(LocationManager.PASSIVE_PROVIDER)) {
                 mPassiveListener = new MyLocationListener();
                 lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 5 * 60 * 1000,
                         500, mPassiveListener);
@@ -207,43 +210,6 @@ public class MestoLocationService extends Service {
                 Log.d(TAG, "gps_provider selected");
                 scheduleGpsTimer();
             }
-        }
-        //@todo fallback strategies in case gps or network are unavailable
-    }
-
-    private void scheduleGpsTimer() {
-        if (null != mGpsListener) {
-            Log.d(TAG, "scheduleGpsTimer");
-
-            if (null == mScheduledExecutor) {
-                mScheduledExecutor = Executors.newSingleThreadScheduledExecutor();
-            } else if (null != mScheduledFuture) {
-                mScheduledFuture.cancel(true);
-            }
-
-            final Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    stopMonitoring();
-                    startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
-                }
-            };
-
-            mScheduledFuture = mScheduledExecutor.schedule(r, 5, TimeUnit.MINUTES);
-        }
-    }
-
-    private void stopGpsTimer() {
-        if (null != mScheduledExecutor) {
-            Log.d(TAG, "stopGpsTimer");
-
-            if (null != mScheduledFuture) {
-                mScheduledFuture.cancel(true);
-                mScheduledFuture = null;
-            }
-
-            mScheduledExecutor.shutdownNow();
-            mScheduledExecutor = null;
         }
     }
 
@@ -271,6 +237,51 @@ public class MestoLocationService extends Service {
             mNetworkListener = null;
         }
         mPreviousLocations.clear();
+    }
+
+    private void scheduleGpsTimer() {
+        if (null != mGpsListener) {
+            Log.d(TAG, "scheduleGpsTimer");
+
+            if (null == mScheduledExecutor) {
+                mScheduledExecutor = Executors.newSingleThreadScheduledExecutor();
+            } else if (null != mScheduledFuture) {
+                mScheduledFuture.cancel(true);
+            }
+
+            final Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        stopMonitoring();
+                    } catch (final Exception e) {
+                        Log.e(TAG, "exception from stopMonitoring", e);
+                    }
+
+                    try {
+                        startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
+                    } catch (final Exception e) {
+                        Log.e(TAG, "exception from startMonitoring", e);
+                    }
+                }
+            };
+
+            mScheduledFuture = mScheduledExecutor.schedule(r, 5, TimeUnit.MINUTES);
+        }
+    }
+
+    private void stopGpsTimer() {
+        if (null != mScheduledExecutor) {
+            Log.d(TAG, "stopGpsTimer");
+
+            if (null != mScheduledFuture) {
+                mScheduledFuture.cancel(true);
+                mScheduledFuture = null;
+            }
+
+            mScheduledExecutor.shutdownNow();
+            mScheduledExecutor = null;
+        }
     }
 
     public void sendLocation() {
@@ -320,7 +331,7 @@ public class MestoLocationService extends Service {
     void startReporting() {
         Log.i(TAG, "start reporting requested");
         mIsReporting = true;
-        startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
+        startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
     }
 
     Collection<Event> getLogEvents() {
@@ -432,7 +443,7 @@ public class MestoLocationService extends Service {
         } else if (null != mGpsListener && !moving) {
             Log.i(TAG, "switch to network provider; stationary");
             stopMonitoring();
-            startMonitoring(USE_NETWORK_AND_FUSED_PROVIDERS);
+            startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
         }
     }
 
