@@ -8,15 +8,12 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.IBinder;
 import android.os.SystemClock;
-import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -38,8 +35,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import bg.mrm.mesto.upnp.UpnpController;
-
-import static bg.mrm.mesto.Globals.TAG;
 
 public class MestoLocationService extends Service {
     private static final boolean USE_NETWORK_OR_PASSIVE_PROVIDER = true;
@@ -92,6 +87,7 @@ public class MestoLocationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        Utilities.initializeLogger(this);
 
         loadEvents();
 
@@ -102,9 +98,6 @@ public class MestoLocationService extends Service {
 
         mUpnpController = new UpnpController(this, mExecutor);
         mDeviceId = mUpnpController.getOwnUdn();
-
-        /*final File f = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        Log.i(TAG, "dlcache: " + f.toString());*/
     }
 
     @Override
@@ -130,7 +123,7 @@ public class MestoLocationService extends Service {
             fis = openFileInput("eventLog");
 
             final long fileSize = fis.getChannel().size();
-            Log.i(TAG, "eventLog file size " + fileSize);
+            Utilities.log("eventLog file size " + fileSize);
             final long maxSize = MAX_LOG_EVENTS * ((Byte.SIZE + Long.SIZE) / 8);
 
             int entries;
@@ -153,7 +146,7 @@ public class MestoLocationService extends Service {
         } catch (final FileNotFoundException e) {
 
         } catch (final Exception e) {
-            Log.e(TAG, "could not open events log", e);
+            Utilities.log("could not open events log: " + e);
             e.printStackTrace();
         } finally {
             if (null != dis) {
@@ -195,19 +188,19 @@ public class MestoLocationService extends Service {
                 mNetworkListener = new MyLocationListener();
                 lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10 * 60 * 1000,
                         500, mNetworkListener);
-                Log.d(TAG, "network_provider selected");
+                Utilities.log("network_provider selected");
             } else if (ps.contains(LocationManager.PASSIVE_PROVIDER)) {
                 mPassiveListener = new MyLocationListener();
                 lm.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 5 * 60 * 1000,
                         500, mPassiveListener);
-                Log.d(TAG, "passive_provider selected");
+                Utilities.log("passive_provider selected");
             }
         } else if (USE_GPS_PROVIDER == provider) {
             if (ps.contains(LocationManager.GPS_PROVIDER)) {
                 mGpsListener = new MyLocationListener();
                 lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1 * 60 * 1000,
                         0, mGpsListener);
-                Log.d(TAG, "gps_provider selected");
+                Utilities.log("gps_provider selected");
                 scheduleGpsTimer();
             }
         }
@@ -216,23 +209,23 @@ public class MestoLocationService extends Service {
     private final void stopMonitoring() {
         final LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (null != mGpsListener) {
-            Log.d(TAG, "about to stop listening to gps_provider");
+            Utilities.log("about to stop listening to gps_provider");
             locationManager.removeUpdates(mGpsListener);
             mGpsListener = null;
 
             try {
                 stopGpsTimer();
             } catch (Exception e) {
-                Log.e(TAG, "exception from stopGpsTimer", e);
+                Utilities.log("exception from stopGpsTimer: " + e);
             }
         }
         if (null != mPassiveListener) {
-            Log.d(TAG, "about to stop listening to passive_provider");
+            Utilities.log("about to stop listening to passive_provider");
             locationManager.removeUpdates(mPassiveListener);
             mPassiveListener = null;
         }
         if (null != mNetworkListener) {
-            Log.d(TAG, "about to stop listening to network_provider");
+            Utilities.log("about to stop listening to network_provider");
             locationManager.removeUpdates(mNetworkListener);
             mNetworkListener = null;
         }
@@ -241,7 +234,7 @@ public class MestoLocationService extends Service {
 
     private void scheduleGpsTimer() {
         if (null != mGpsListener) {
-            Log.d(TAG, "scheduleGpsTimer");
+            Utilities.log("scheduleGpsTimer");
 
             if (null == mScheduledExecutor) {
                 mScheduledExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -255,13 +248,13 @@ public class MestoLocationService extends Service {
                     try {
                         stopMonitoring();
                     } catch (final Exception e) {
-                        Log.e(TAG, "exception from stopMonitoring", e);
+                        Utilities.log("exception from stopMonitoring: " + e);
                     }
 
                     try {
                         startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
                     } catch (final Exception e) {
-                        Log.e(TAG, "exception from startMonitoring", e);
+                        Utilities.log("exception from startMonitoring: " + e);
                     }
                 }
             };
@@ -272,7 +265,7 @@ public class MestoLocationService extends Service {
 
     private void stopGpsTimer() {
         if (null != mScheduledExecutor) {
-            Log.d(TAG, "stopGpsTimer");
+            Utilities.log("stopGpsTimer");
 
             if (null != mScheduledFuture) {
                 mScheduledFuture.cancel(true);
@@ -293,7 +286,7 @@ public class MestoLocationService extends Service {
 
             sendLocation(mLastLocation, mDeviceId, Build.DEVICE);
         } else {
-            Log.e(TAG, "no location to send");
+            Utilities.log("no location to send");
         }
     }
 
@@ -306,7 +299,7 @@ public class MestoLocationService extends Service {
     }
 
     void stopUpnp() {
-        Log.i(TAG, "stop upnp");
+        Utilities.log("stop upnp");
         final UpnpController uc = mUpnpController;
         final Runnable r = new Runnable() {
             @Override
@@ -318,18 +311,18 @@ public class MestoLocationService extends Service {
     }
 
     void startUpnp() {
-        Log.i(TAG, "start upnp");
+        Utilities.log("start upnp");
         mUpnpController.up();
     }
 
     void stopReporting() {
-        Log.i(TAG, "stop reporting requested");
+        Utilities.log("stop reporting requested");
         mIsReporting = false;
         stopMonitoring();
     }
 
     void startReporting() {
-        Log.i(TAG, "start reporting requested");
+        Utilities.log("start reporting requested");
         mIsReporting = true;
         startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
     }
@@ -343,9 +336,9 @@ public class MestoLocationService extends Service {
     private boolean detectMovement(final Location location) {
         for (final Location l : mPreviousLocations) {
             final float distance = l.distanceTo(location);
-            Log.i(TAG, "distance " + distance + "; " + l);
+            Utilities.log("distance " + distance + "; " + l);
             if (l.distanceTo(location) > DISTANCE_THRESHOLD) {
-                Log.i(TAG, "movement detected");
+                Utilities.log("movement detected");
                 return true;
             }
         }
@@ -401,10 +394,10 @@ public class MestoLocationService extends Service {
                     s.close();
 
                     result = true;
-                    Log.i(TAG, "updated: " + e.uri);
+                    Utilities.log("updated: " + e.uri);
 
                 } catch (final Exception exc) {
-                    Log.e(TAG, "update error: " + e.uri);
+                    Utilities.log("update error: " + e.uri);
                     SystemClock.sleep(3000 * (1 + sleepFactor));
 
                 } finally {
@@ -437,11 +430,11 @@ public class MestoLocationService extends Service {
 
     private void switchMonitorIfNecessary(final boolean moving) {
         if (null == mGpsListener && moving) {
-            Log.i(TAG, "enable gps provider; in motion");
+            Utilities.log("enable gps provider; in motion");
             stopMonitoring();
             startMonitoring(USE_GPS_PROVIDER);
         } else if (null != mGpsListener && !moving) {
-            Log.i(TAG, "switch to network provider; stationary");
+            Utilities.log("switch to network provider; stationary");
             stopMonitoring();
             startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
         }
@@ -520,7 +513,7 @@ public class MestoLocationService extends Service {
             try {
                 final ServerSocket serverSocket = new ServerSocket(50001);
                 while (true) {
-                    Log.i(TAG, "local server at port 50001");
+                    Utilities.log("local server at port 50001");
                     //@todo make it cancelable
                     final Socket socket = serverSocket.accept();
                     mExecutor.submit(new SocketRunnable(socket));
@@ -551,7 +544,7 @@ public class MestoLocationService extends Service {
         @Override
         public void run() {
             try {
-                Log.i(TAG, "local server processing request from " + mSocket.getInetAddress());
+                Utilities.log("local server processing request from " + mSocket.getInetAddress());
                 final DataInputStream dis = new DataInputStream(mSocket.getInputStream());
 
                 final String udn = dis.readUTF();
@@ -576,7 +569,7 @@ public class MestoLocationService extends Service {
 
     private final class MyLocationListener implements LocationListener {
         public void onLocationChanged(final Location l) {
-            Log.d(TAG, "location: " + l);
+            Utilities.log("location: " + l);
 
             if (mIsReporting) {
                 scheduleGpsTimer();
@@ -585,7 +578,7 @@ public class MestoLocationService extends Service {
                     final long timePassed = l.getElapsedRealtimeNanos() - mLastLocation.getElapsedRealtimeNanos();
                     if (l.getAccuracy() >= mLastLocation.getAccuracy()
                             && mLastLocation.distanceTo(l) < 50 && timePassed < TWO_MINUTES_IN_NANOS) {
-                        Log.i(TAG, "skip reporting less accurate location");
+                        Utilities.log("skip reporting less accurate location");
                         return;
                     }
                 }
@@ -596,16 +589,16 @@ public class MestoLocationService extends Service {
         }
 
         public void onStatusChanged(final String provider, final int status, final Bundle extras) {
-            Log.d(TAG, "status changed: " + provider + ", " + status);
+            Utilities.log("status changed: " + provider + ", " + status);
         }
 
         public void onProviderEnabled(final String provider) {
-            Log.d(TAG, "provider enabled: " + provider);
+            Utilities.log("provider enabled: " + provider);
         }
 
         public void onProviderDisabled(final String provider) {
             //network might be disabled; need fallback options if gps or netw are unavailable
-            Log.d(TAG, "provider disabled: " + provider);
+            Utilities.log("provider disabled: " + provider);
         }
     }
 

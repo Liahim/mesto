@@ -224,6 +224,7 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
             item.setTitle(R.string.start_reporting);
             if (toggle) {
                 mService.stopReporting();
+                Utilities.exportLog();
             }
             mStatusText.setText("Location reporting stopped");
         } else {
