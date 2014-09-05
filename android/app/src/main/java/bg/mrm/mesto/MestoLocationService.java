@@ -8,6 +8,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
 
@@ -30,8 +31,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import bg.mrm.mesto.upnp.UpnpController;
@@ -47,8 +46,7 @@ public class MestoLocationService extends Service {
 
     private final Binder mBinder = new Binder();
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
-    private ScheduledExecutorService mScheduledExecutor;
-    private ScheduledFuture<?> mScheduledFuture;
+
     private final LinkedList<Event> mLogEvents = new LinkedList<Event>();
     private final Collection<Runnable> mRunnableCallbacks = new HashSet<Runnable>();
     private boolean mIsReporting = true;
@@ -59,8 +57,29 @@ public class MestoLocationService extends Service {
     private LocationListener mGpsListener;
     private LocationListener mPassiveListener;
 
+    private Handler mHandler;
+
     private Location mLastLocation;
     private ArrayList<Location> mPreviousLocations = new ArrayList<Location>();
+
+    private final Runnable mSwitchToNetworkProviderRunnable = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                stopMonitoring();
+            } catch (final Exception e) {
+                Utilities.log("exception from stopMonitoring: " + e);
+            }
+
+            try {
+
+                startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
+            } catch (final Exception e) {
+                Utilities.log("exception from startMonitoring: " + e);
+            }
+        }
+    };
+
 
     static class Event {
         private final static Type[] sTypes = Type.values();
@@ -89,6 +108,7 @@ public class MestoLocationService extends Service {
         super.onCreate();
         Utilities.initializeLogger(this);
 
+        mHandler = new Handler();
         loadEvents();
 
         persistEvent(registerEvent(Event.Type.Start));
@@ -177,7 +197,7 @@ public class MestoLocationService extends Service {
         return mBinder;
     }
 
-
+    //must be run on the ui thread
     private final void startMonitoring(boolean provider) {
         final LocationManager lm = (LocationManager) this.getSystemService(
                 Context.LOCATION_SERVICE);
@@ -236,45 +256,12 @@ public class MestoLocationService extends Service {
         if (null != mGpsListener) {
             Utilities.log("scheduleGpsTimer");
 
-            if (null == mScheduledExecutor) {
-                mScheduledExecutor = Executors.newSingleThreadScheduledExecutor();
-            } else if (null != mScheduledFuture) {
-                mScheduledFuture.cancel(true);
-            }
-
-            final Runnable r = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        stopMonitoring();
-                    } catch (final Exception e) {
-                        Utilities.log("exception from stopMonitoring: " + e);
-                    }
-
-                    try {
-                        startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
-                    } catch (final Exception e) {
-                        Utilities.log("exception from startMonitoring: " + e);
-                    }
-                }
-            };
-
-            mScheduledFuture = mScheduledExecutor.schedule(r, 5, TimeUnit.MINUTES);
+            mHandler.postDelayed(mSwitchToNetworkProviderRunnable, TimeUnit.MINUTES.toMillis(5));
         }
     }
 
     private void stopGpsTimer() {
-        if (null != mScheduledExecutor) {
-            Utilities.log("stopGpsTimer");
-
-            if (null != mScheduledFuture) {
-                mScheduledFuture.cancel(true);
-                mScheduledFuture = null;
-            }
-
-            mScheduledExecutor.shutdownNow();
-            mScheduledExecutor = null;
-        }
+        mHandler.removeCallbacks(mSwitchToNetworkProviderRunnable);
     }
 
     public void sendLocation() {

@@ -16,7 +16,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParsePosition;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 public final class Utilities {
@@ -111,6 +115,10 @@ public final class Utilities {
 
     static void log(final String s) {
         try {
+            final DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM);
+            final String dateTime = df.format(new Date());
+            mLogger.write(dateTime.getBytes("UTF-8"));
+            mLogger.write(' ');
             mLogger.write(s.getBytes("UTF-8"));
             mLogger.write('\n');
         } catch (final IOException e) {

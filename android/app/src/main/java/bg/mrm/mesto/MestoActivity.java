@@ -56,7 +56,7 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
         public final void onServiceConnected(final ComponentName name, final IBinder service) {
             Log.i(TAG, "onServiceConnected");
             mService = ((MestoLocationService.Binder) service).getService();
-            mService.addRunnableCallback(mRunnable);
+            mService.addRunnableCallback(mExecuteByLocationServiceRunnable);
 
             if (mService.isUpnpOn()) {
                 mService.getPeerRegistry().setListener(MestoActivity.this);
@@ -88,7 +88,7 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
     protected final void onResume() {
         super.onResume();
         if (null != mService) {
-            mService.addRunnableCallback(mRunnable);
+            mService.addRunnableCallback(mExecuteByLocationServiceRunnable);
             prepareStatusText();
             displayStatusText();
         }
@@ -98,7 +98,7 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
     protected void onPause() {
         super.onPause();
         if (null != mService) {
-            mService.removeRunnableCallback(mRunnable);
+            mService.removeRunnableCallback(mExecuteByLocationServiceRunnable);
         }
     }
 
@@ -109,7 +109,7 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
     }
 
     private final SimpleDateFormat mFormat = new SimpleDateFormat("EEE, d MMM yyyy H:mm:ss z", Locale.US);
-    private final Runnable mRunnable = new Runnable() {
+    private final Runnable mExecuteByLocationServiceRunnable = new Runnable() {
         @Override
         public final void run() {
             prepareStatusText();
