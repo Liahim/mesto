@@ -2,3 +2,9 @@ multidevice support
 allow running more than one service in the same process-
 to simulate multiple devices easier
 default port (range) for manual entry too
+
+app:
+why gps stops
+update error more info
+heartbeat-check every hour or so from gps?netw provider
+doesn't detect going to the nearby park for example
