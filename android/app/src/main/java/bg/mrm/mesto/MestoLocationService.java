@@ -249,6 +249,8 @@ public class MestoLocationService extends Service {
             locationManager.removeUpdates(mNetworkListener);
             mNetworkListener = null;
         }
+
+        mLastLocation = null;
         mPreviousLocations.clear();
     }
 
