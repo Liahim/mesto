@@ -323,15 +323,23 @@ public class MestoLocationService extends Service {
     }
 
     private boolean detectMovement(final Location location) {
-        for (final Location l : mPreviousLocations) {
-            final float distance = l.distanceTo(location);
-            Utilities.log("distance " + distance + "; " + l);
-            if (l.distanceTo(location) > DISTANCE_THRESHOLD) {
-                Utilities.log("movement detected");
-                return true;
+        boolean result = false;
+
+        if (0 < mPreviousLocations.size()) {
+            for (final Location l : mPreviousLocations) {
+                final float distance = l.distanceTo(location);
+                Utilities.log("distance " + distance + "; " + l);
+                if (l.distanceTo(location) > DISTANCE_THRESHOLD) {
+                    Utilities.log("movement detected");
+                    result = true;
+                    break;
+                }
             }
+        } else {
+            result = true;
         }
-        return false;
+
+        return result;
     }
 
     private void sendLocation(final Location location, final String udn, final String title) {
