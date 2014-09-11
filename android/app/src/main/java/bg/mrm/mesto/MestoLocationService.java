@@ -36,8 +36,8 @@ import java.util.concurrent.TimeUnit;
 import bg.mrm.mesto.upnp.UpnpController;
 
 public class MestoLocationService extends Service {
-    private static final boolean USE_NETWORK_OR_PASSIVE_PROVIDER = true;
-    private static final boolean USE_GPS_PROVIDER = false;
+    private static final boolean OK_PRECISION_OK_POWER = true;
+    private static final boolean HIGH_PRECISION_HIGH_POWER = false;
     private final static int MAX_LOG_EVENTS = 100;
     private final static long TWO_MINUTES_IN_NANOS = TimeUnit.MINUTES.toNanos(2);
 
@@ -65,6 +65,7 @@ public class MestoLocationService extends Service {
     private final Runnable mSwitchToNetworkProviderRunnable = new Runnable() {
         @Override
         public void run() {
+            Utilities.log("gps watchdog running");
             try {
                 stopMonitoring();
             } catch (final Exception e) {
@@ -73,7 +74,7 @@ public class MestoLocationService extends Service {
 
             try {
 
-                startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
+                startMonitoring(OK_PRECISION_OK_POWER);
             } catch (final Exception e) {
                 Utilities.log("exception from startMonitoring: " + e);
             }
@@ -106,18 +107,19 @@ public class MestoLocationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Utilities.initializeLogger(this);
+        Utilities.openLogger(this);
 
         mHandler = new Handler();
         loadEvents();
 
         persistEvent(registerEvent(Event.Type.Start));
 
-        startReporting();
         mExecutor.submit(mServer);
 
         mUpnpController = new UpnpController(this, mExecutor);
         mDeviceId = mUpnpController.getOwnUdn();
+
+        startReporting();
     }
 
     @Override
@@ -203,10 +205,10 @@ public class MestoLocationService extends Service {
                 Context.LOCATION_SERVICE);
         final List<String> ps = lm.getAllProviders();
 
-        if (USE_NETWORK_OR_PASSIVE_PROVIDER == provider) {
+        if (OK_PRECISION_OK_POWER == provider) {
             if (ps.contains(LocationManager.NETWORK_PROVIDER)) {
                 mNetworkListener = new MyLocationListener();
-                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10 * 60 * 1000,
+                lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10 /** 60 */ * 1000,
                         500, mNetworkListener);
                 Utilities.log("network_provider selected");
             } else if (ps.contains(LocationManager.PASSIVE_PROVIDER)) {
@@ -215,7 +217,7 @@ public class MestoLocationService extends Service {
                         500, mPassiveListener);
                 Utilities.log("passive_provider selected");
             }
-        } else if (USE_GPS_PROVIDER == provider) {
+        } else if (HIGH_PRECISION_HIGH_POWER == provider) {
             if (ps.contains(LocationManager.GPS_PROVIDER)) {
                 mGpsListener = new MyLocationListener();
                 lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1 * 60 * 1000,
@@ -258,6 +260,7 @@ public class MestoLocationService extends Service {
         if (null != mGpsListener) {
             Utilities.log("scheduleGpsTimer");
 
+            stopGpsTimer();
             mHandler.postDelayed(mSwitchToNetworkProviderRunnable, TimeUnit.MINUTES.toMillis(5));
         }
     }
@@ -313,7 +316,7 @@ public class MestoLocationService extends Service {
     void startReporting() {
         Utilities.log("start reporting requested");
         mIsReporting = true;
-        startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
+        startMonitoring(OK_PRECISION_OK_POWER);
     }
 
     Collection<Event> getLogEvents() {
@@ -322,30 +325,33 @@ public class MestoLocationService extends Service {
         }
     }
 
-    private boolean detectMovement(final Location location) {
-        boolean result = false;
+    enum MovementState {
+        Stationary,
+        Moving,
+        Indeterminable
+    }
+
+    private MovementState detectMovement(final Location location) {
+        MovementState result = MovementState.Indeterminable;
 
         if (0 < mPreviousLocations.size()) {
+            result = MovementState.Stationary;
+
             for (final Location l : mPreviousLocations) {
                 final float distance = l.distanceTo(location);
                 Utilities.log("distance " + distance + "; " + l);
                 if (l.distanceTo(location) > DISTANCE_THRESHOLD) {
                     Utilities.log("movement detected");
-                    result = true;
+                    result = MovementState.Moving;
                     break;
                 }
             }
-        } else {
-            result = true;
         }
 
         return result;
     }
 
     private void sendLocation(final Location location, final String udn, final String title) {
-        final boolean moving = detectMovement(location);
-        switchMonitorIfNecessary(moving);
-
         final Runnable updateRunnable = new Runnable() {
             @Override
             public final void run() {
@@ -425,15 +431,15 @@ public class MestoLocationService extends Service {
         }
     }
 
-    private void switchMonitorIfNecessary(final boolean moving) {
-        if (null == mGpsListener && moving) {
+    private void switchMonitorIfNecessary(final MovementState currentState) {
+        if (null == mGpsListener && MovementState.Moving == currentState) {
             Utilities.log("enable gps provider; in motion");
             stopMonitoring();
-            startMonitoring(USE_GPS_PROVIDER);
-        } else if (null != mGpsListener && !moving) {
+            startMonitoring(HIGH_PRECISION_HIGH_POWER);
+        } else if (null != mGpsListener && MovementState.Stationary == currentState) {
             Utilities.log("switch to network provider; stationary");
             stopMonitoring();
-            startMonitoring(USE_NETWORK_OR_PASSIVE_PROVIDER);
+            startMonitoring(OK_PRECISION_OK_POWER);
         }
     }
 
@@ -581,6 +587,8 @@ public class MestoLocationService extends Service {
                 }
 
                 updateLocationHistory(l);
+                switchMonitorIfNecessary(detectMovement(l));
+
                 sendLocation(l, mDeviceId, Build.DEVICE);
             }
         }

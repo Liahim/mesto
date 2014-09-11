@@ -17,8 +17,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.text.DateFormat;
-import java.text.FieldPosition;
-import java.text.ParsePosition;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -64,7 +62,7 @@ public final class Utilities {
     static BufferedOutputStream mLogger;
     static Context mAppCtx;
 
-    static boolean initializeLogger(Context ctx) {
+    static boolean openLogger(Context ctx) {
         mAppCtx = ctx.getApplicationContext();
 
         boolean result;
@@ -79,7 +77,7 @@ public final class Utilities {
         return result;
     }
 
-    private static void closeLogger() {
+    static void closeLogger() {
         try {
             mLogger.close();
         } catch (final IOException e) {
@@ -110,7 +108,7 @@ public final class Utilities {
         }
         source.delete();
 
-        initializeLogger(mAppCtx);
+        openLogger(mAppCtx);
     }
 
     static void log(final String s) {
