@@ -14,6 +14,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.text.DateFormat;
@@ -109,6 +112,25 @@ public final class Utilities {
         source.delete();
 
         openLogger(mAppCtx);
+    }
+
+    static void log(final Exception exc) {
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter(sw);
+        exc.printStackTrace(pw);
+        pw.close();
+
+        try {
+            final DateFormat df = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM);
+            final String dateTime = df.format(new Date());
+            mLogger.write(dateTime.getBytes("UTF-8"));
+            mLogger.write(' ');
+            mLogger.write(sw.toString().getBytes("UTF-8"));
+            mLogger.write('\n');
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+        Log.d("Mesto", "exception: ", exc);
     }
 
     static void log(final String s) {

@@ -60,7 +60,7 @@ public class MestoLocationService extends Service {
     private Handler mHandler;
 
     private Location mLastLocation;
-    private ArrayList<Location> mPreviousLocations = new ArrayList<Location>();
+    private final ArrayList<Location> mPreviousLocations = new ArrayList<Location>();
 
     private final Runnable mSwitchToNetworkProviderRunnable = new Runnable() {
         @Override
@@ -150,7 +150,7 @@ public class MestoLocationService extends Service {
 
             int entries;
             if (fileSize > maxSize) {
-                long offset = fileSize - maxSize;
+                final long offset = fileSize - maxSize;
                 fis.skip(offset);
                 entries = MAX_LOG_EVENTS;
             } else {
@@ -200,7 +200,7 @@ public class MestoLocationService extends Service {
     }
 
     //must be run on the ui thread
-    private final void startMonitoring(boolean provider) {
+    private final void startMonitoring(final boolean provider) {
         final LocationManager lm = (LocationManager) this.getSystemService(
                 Context.LOCATION_SERVICE);
         final List<String> ps = lm.getAllProviders();
@@ -237,7 +237,7 @@ public class MestoLocationService extends Service {
 
             try {
                 stopGpsTimer();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 Utilities.log("exception from stopGpsTimer: " + e);
             }
         }
@@ -321,6 +321,7 @@ public class MestoLocationService extends Service {
 
     Collection<Event> getLogEvents() {
         synchronized (mLogEvents) {
+            //noinspection unchecked
             return (Collection<Event>) mLogEvents.clone();
         }
     }
@@ -355,7 +356,7 @@ public class MestoLocationService extends Service {
         final Runnable updateRunnable = new Runnable() {
             @Override
             public final void run() {
-                Collection<PeerRegistry.Endpoint> ee = mUpnpController.getRegistry().getUpdateEndpoints();
+                final Collection<PeerRegistry.Endpoint> ee = mUpnpController.getRegistry().getUpdateEndpoints();
 
                 for (final PeerRegistry.Endpoint e : ee) {
                     final Runnable peerRunnable = new Runnable() {
@@ -398,24 +399,24 @@ public class MestoLocationService extends Service {
 
                     result = true;
                     Utilities.log("updated: " + e.uri);
-
                 } catch (final Exception exc) {
                     Utilities.log("update error: " + e.uri);
+                    Utilities.log(exc);
                     SystemClock.sleep(3000 * (1 + sleepFactor));
 
                 } finally {
                     try {
                         dos.close();
-                    } catch (IOException e1) {
+                    } catch (final IOException e1) {
                     }
                     try {
                         baos.close();
-                    } catch (IOException e1) {
+                    } catch (final IOException e1) {
                     }
                     if (null != s) {
                         try {
                             s.close();
-                        } catch (IOException e1) {
+                        } catch (final IOException e1) {
                         }
                     }
                 }
@@ -455,7 +456,7 @@ public class MestoLocationService extends Service {
 
     private final Event registerEvent(final Event.Type type) {
         final long lastUpdateTime = System.currentTimeMillis();
-        Event result;
+        final Event result;
 
         synchronized (mLogEvents) {
             if (MAX_LOG_EVENTS == mLogEvents.size()) {
@@ -521,7 +522,7 @@ public class MestoLocationService extends Service {
                     final Socket socket = serverSocket.accept();
                     mExecutor.submit(new SocketRunnable(socket));
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 e.printStackTrace();
             }
         }
@@ -555,7 +556,7 @@ public class MestoLocationService extends Service {
                 final double latitude = dis.readDouble();
                 final double longitude = dis.readDouble();
 
-                for (EventNotificationListener l : mEventNotificationListeners) {
+                for (final EventNotificationListener l : mEventNotificationListeners) {
                     l.onEvent(udn, product, latitude, longitude);
                 }
             } catch (final IOException e) {
