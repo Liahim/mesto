@@ -80,14 +80,9 @@
     </content>
     <orderEntry type="jdk" jdkName="Android API 19 Platform" jdkType="Android SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" exported="" name="teleal-common-1.0.13" level="project" />
-    <orderEntry type="library" exported="" name="cling-core-1.0.5" level="project" />
-    <orderEntry type="library" exported="" name="android-integration-3.1.0" level="project" />
-    <orderEntry type="library" exported="" name="core-3.1.0" level="project" />
-    <orderEntry type="library" exported="" name="cling-support-1.0.5" level="project" />
-    <orderEntry type="library" exported="" name="support-annotations-20.0.0" level="project" />
-    <orderEntry type="library" exported="" name="support-v4-20.0.0" level="project" />
-    <orderEntry type="library" exported="" name="play-services-6.1.71" level="project" />
+    <orderEntry type="library" exported="" name="support-annotations-21.0.0" level="project" />
+    <orderEntry type="library" exported="" name="support-v4-21.0.0" level="project" />
+    <orderEntry type="library" exported="" name="play-services-6.5.87" level="project" />
   </component>
 </module>
 
