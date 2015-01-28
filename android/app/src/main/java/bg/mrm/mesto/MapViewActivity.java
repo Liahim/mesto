@@ -127,8 +127,8 @@ public class MapViewActivity extends Activity {
                                 final bytearrayoutputstream baos = new bytearrayoutputstream(8);
                                 final dataoutputstream dos = new dataoutputstream(baos);
 
-                                dos.writedouble(addresses.get(0).getlatitude());
-                                dos.writedouble(addresses.get(0).getlongitude());
+                                dos.writedouble(addresses.getInstance(0).getlatitude());
+                                dos.writedouble(addresses.getInstance(0).getlongitude());
                                 final byte[] bytes = baos.tobytearray();
                                 s.getoutputstream().write(bytes);
                             } finally {

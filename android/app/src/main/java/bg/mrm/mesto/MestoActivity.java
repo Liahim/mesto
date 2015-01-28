@@ -58,12 +58,9 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
             mService = ((MestoLocationService.Binder) service).getService();
             mService.addRunnableCallback(mExecuteByLocationServiceRunnable);
 
-            if (mService.isUpnpOn()) {
-                mService.getPeerRegistry().setListener(MestoActivity.this);
-            }
+            mService.getPeerRegistry().setListener(MestoActivity.this);
 
             showToggleReportingIfPossible();
-            showToggleUpnpIfPossible();
         }
     };
 
@@ -171,9 +168,6 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
         mMenuItemToggleReporting = menu.findItem(R.id.menu_toggle_reporting);
         showToggleReportingIfPossible();
 
-        mMenuItemToggleUpnp = menu.findItem(R.id.menu_toggle_upnp);
-        showToggleUpnpIfPossible();
-
         menu.findItem(R.id.menu_dump_peers).setOnMenuItemClickListener(new OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(final MenuItem item) {
@@ -182,23 +176,6 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
             }
         });
         return true;
-    }
-
-    private void showToggleUpnpIfPossible() {
-        if (null != mMenuItemToggleUpnp) {
-            final boolean serviceConnected = null != mService;
-            mMenuItemToggleUpnp.setVisible(serviceConnected);
-            if (serviceConnected) {
-                establishToggleUpnpState(mMenuItemToggleUpnp, !mService.isUpnpOn(), false);
-                mMenuItemToggleUpnp.setOnMenuItemClickListener(new OnMenuItemClickListener() {
-                    @Override
-                    public final boolean onMenuItemClick(final MenuItem item) {
-                        establishToggleUpnpState(item, mService.isUpnpOn(), true);
-                        return true;
-                    }
-                });
-            }
-        }
     }
 
     private void showToggleReportingIfPossible() {
@@ -234,34 +211,6 @@ public final class MestoActivity extends Activity implements PeerRegistry.Notifi
             }
             prepareStatusText();
             displayStatusText();
-        }
-    }
-
-    private final void establishToggleUpnpState(final MenuItem item, final boolean showUpnp,
-                                                final boolean toggle) {
-        if (showUpnp) {
-            item.setTitle(R.string.start_upnp);
-            if (toggle) {
-                mService.stopUpnp();
-
-                final Collection<View> views = new ArrayList<View>();
-                for (int i = 0; i < mPeersList.getChildCount(); ++i) {
-                    final View v = mPeersList.getChildAt(i);
-                    if (null != v.getTag(R.id.tag_udn)) {
-                        views.add(v);
-                    }
-                }
-                for (final View v : views) {
-                    mPeersList.removeView(v);
-                }
-            }
-            mStatusText.setText("Upnp stopped");
-        } else {
-            item.setTitle(R.string.stop_upnp);
-            if (toggle) {
-                mService.startUpnp();
-                mService.getPeerRegistry().setListener(MestoActivity.this);
-            }
         }
     }
 
