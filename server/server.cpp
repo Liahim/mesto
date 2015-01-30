@@ -1,6 +1,4 @@
 #include <stdlib.h>
-
-#include <sys/mman.h>
 #include <strings.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,12 +15,10 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <syslog.h>
-
-#include <sys/wait.h>
-//#include <unistd.h>
 #include <time.h>
 #include <signal.h>
 #include <pthread.h>
+#include <string>
 
 static const char* SYSLOG_TAG="Mesto";
 
@@ -109,19 +105,15 @@ void* doprocessing(void* arg) {
 	short udnLength = buffer[offset++]<<8;
 	udnLength |= buffer[offset++];
 
-	char* udn = new char[udnLength+1];
-	memcpy(udn, buffer+offset, udnLength);
-	*(udn+udnLength) = 0;
+	std::string id(buffer+offset, udnLength);
 	offset += udnLength;
 
 	//title utf-8 string
 	short titleLength = buffer[offset++]<<8;
 	titleLength |= buffer[offset++];
 
-	char* title = new char[titleLength+1];
-	memcpy(title, buffer+offset, titleLength);
-	*(title+titleLength) = 0;
-	offset += titleLength;
+    std::string title(buffer+offset, titleLength);
+    offset += titleLength;
 
 	lon.b[7] = buffer[offset++];
 	lon.b[6] = buffer[offset++];
@@ -143,12 +135,9 @@ void* doprocessing(void* arg) {
 
 	int fd = open ("/opt/share/httpd/coord.json", O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	char msg[128] = {0};
-	sprintf(msg, "{\"lon\":%.6lf,\"lat\":%.6lf,\"title\":\"%s\"}", lon.d, lat.d, title);
+	sprintf(msg, "{\"lon\":%.6lf,\"lat\":%.6lf,\"title\":\"%s\"}", lon.d, lat.d, title.c_str());
 	write(fd, msg, strlen(msg));
 	close(fd);
-
-	delete(udn);
-	delete(title);
 
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
