@@ -19,31 +19,23 @@
 #include <syslog.h>
 
 #include <sys/wait.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <time.h>
 #include <signal.h>
+#include <pthread.h>
 
-void doprocessing(int sock);
-
-static double* glob_var;
 static const char* SYSLOG_TAG="Mesto";
+
+void* doprocessing(void* arg);
 
 int main(int argc, char *argv[]) {
 	openlog(SYSLOG_TAG,LOG_PERROR,0);
 	syslog(LOG_INFO, "starting up");
 
-	struct sigaction sigchld_action = {
-	  .sa_handler = SIG_DFL,
-	  .sa_flags = SA_NOCLDWAIT
-	};
+	struct sigaction sigchld_action;
+	sigchld_action.sa_handler = SIG_DFL;
+	sigchld_action.sa_flags = SA_NOCLDWAIT;
 	sigaction(SIGCHLD, &sigchld_action, NULL);
-
-	glob_var = mmap(NULL, sizeof *glob_var, PROT_READ | PROT_WRITE,
-			MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-	if (MAP_FAILED == glob_var) {
-		syslog(LOG_ERR, "mmap failed");
-		exit(1);
-	}
 
 	int sockfd, newsockfd, portno;
 	socklen_t clilen;
@@ -75,35 +67,28 @@ int main(int argc, char *argv[]) {
 	clilen = sizeof(cli_addr);
 	while (1) {
 		newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+
 		if (newsockfd < 0) {
 			syslog(LOG_ERR, "ERROR on accept");
 			exit(1);
 		}
 		/* Create child process */
-		int pid = fork();
-		if (pid < 0) {
-			syslog(LOG_ERR, "ERROR on fork");
-			exit(1);
+		pthread_t thread;
+		int err = pthread_create(&thread, NULL, doprocessing, (void*)&newsockfd);
+		if (0 != err) {
+	        syslog(LOG_ERR, "error creating thread; err: %X", err);
+	        exit(1);
 		}
-		if (pid == 0) {
-			/* This is the client process */
-			close(sockfd);
-			doprocessing(newsockfd);
-			close(newsockfd);
-			exit(0);
-		}else{
-			close(newsockfd);
-		}
-
 	} /* end of while */
 
-	munmap(glob_var, sizeof *glob_var);
 	closelog();
 }
 
-void doprocessing(int sock) {
+void* doprocessing(void* arg) {
 	int n;
 	char buffer[256];
+
+	int sock = *((int*)arg);
 
 	bzero(buffer, 256);
 
@@ -124,7 +109,7 @@ void doprocessing(int sock) {
 	short udnLength = buffer[offset++]<<8;
 	udnLength |= buffer[offset++];
 
-	char* udn = malloc(udnLength+1);
+	char* udn = new char[udnLength+1];
 	memcpy(udn, buffer+offset, udnLength);
 	*(udn+udnLength) = 0;
 	offset += udnLength;
@@ -133,7 +118,7 @@ void doprocessing(int sock) {
 	short titleLength = buffer[offset++]<<8;
 	titleLength |= buffer[offset++];
 
-	char* title = malloc(titleLength+1);
+	char* title = new char[titleLength+1];
 	memcpy(title, buffer+offset, titleLength);
 	*(title+titleLength) = 0;
 	offset += titleLength;
@@ -146,7 +131,6 @@ void doprocessing(int sock) {
 	lon.b[2] = buffer[offset++];
 	lon.b[1] = buffer[offset++];
 	lon.b[0] = buffer[offset++];
-	*glob_var = lon.d;
 
 	lat.b[7] = buffer[offset++];
 	lat.b[6] = buffer[offset++];
@@ -163,8 +147,8 @@ void doprocessing(int sock) {
 	write(fd, msg, strlen(msg));
 	close(fd);
 
-	free(udn);
-	free(title);
+	delete(udn);
+	delete(title);
 
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
@@ -174,5 +158,8 @@ void doprocessing(int sock) {
 	syslog(LOG_INFO, "Here is the message: %f, %f",lat.d, lon.d);
 
 	n = write(sock, "I got your message", 18);
+
+	close(sock);
+	return NULL;
 }
 

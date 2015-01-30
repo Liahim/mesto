@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -20,11 +21,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,7 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import static bg.mrm.mesto.Globals.TAG;
 import static bg.mrm.mesto.MestoLocationService.EventNotificationListener;
@@ -170,6 +165,24 @@ public class MapViewActivity extends Activity {
                     }
                 }
             });
+        }
+
+        private static final String ID_MYSELF="myself";
+
+        @Override
+        public void onLocationSelf(final Location location) {
+            final LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
+
+            Marker m = mMarkers.get(ID_MYSELF);
+            if (null != m) {
+                m.setPosition(ll);
+                m.setTitle(getString(R.string.title_myself));
+            } else {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(ll, 10));
+
+                m = mMap.addMarker(new MarkerOptions().position(ll).title(getString(R.string.title_myself)));
+                mMarkers.put(ID_MYSELF, m);
+            }
         }
     };
 

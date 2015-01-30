@@ -396,6 +396,10 @@ public class MestoLocationService extends Service {
         } catch (final RejectedExecutionException e) {
             //ignored for now
         }
+
+        for (final EventNotificationListener l : mEventNotificationListeners) {
+            l.onLocationSelf(location);
+        }
     }
 
     private void switchMonitorIfNecessary(final MovementState currentState) {
@@ -496,12 +500,20 @@ public class MestoLocationService extends Service {
 
     interface EventNotificationListener {
         void onEvent(String udn, String product, double latitude, double longitude);
+
+        void onLocationSelf(Location location);
     }
 
-    final Set<EventNotificationListener> mEventNotificationListeners = new HashSet<EventNotificationListener>();
+    //not used in thread-safe manner
+    private final Set<EventNotificationListener> mEventNotificationListeners = new HashSet<EventNotificationListener>();
 
     boolean addEventNotificationListener(final EventNotificationListener l) {
-        return mEventNotificationListeners.add(l);
+        final boolean added = mEventNotificationListeners.add(l);
+
+        if (added && null != mLastLocation) {
+            l.onLocationSelf(mLastLocation);
+        }
+        return added;
     }
 
     private final class SocketRunnable implements Runnable {

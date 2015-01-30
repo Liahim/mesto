@@ -12,5 +12,6 @@
     <string name="hello_world">Hello world!</string>
     <string name="stop_upnp">Stop UPNP</string>
     <string name="start_upnp">Start UPNP</string>
+    <string name="title_myself">Myself</string>
 
 </resources>
