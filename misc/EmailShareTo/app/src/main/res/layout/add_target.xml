@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+    <RadioGroup
+        android:id="@+id/radioGroup_fields"
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_height="wrap_content">
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/field_to"
+            android:id="@+id/radioButtonTo"
+            android:checked="true"
+            android:layout_marginRight="10dp"/>
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/field_bcc"
+            android:id="@+id/radioButtonBcc"/>
+
+    </RadioGroup>
+
+    <EditText
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:inputType="textEmailAddress"
+        android:id="@+id/editTextEmail"
+        android:layout_below="@+id/radioGroup_fields"
+        android:layout_toLeftOf="@+id/button_add"
+        android:layout_alignParentLeft="true"/>
+
+
+    <Button
+        android:text="Add"
+        android:id="@id/button_add"
+        android:layout_centerVertical="true"
+        android:layout_alignParentRight="true"
+        android:layout_width="wrap_content"
+        android:textSize="14sp"
+        android:layout_height="wrap_content"/>
+
+</RelativeLayout>
